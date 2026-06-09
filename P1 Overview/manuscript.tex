@@ -148,10 +148,12 @@ In the following sections we characterise this architecture in turn: its determi
 \centering
 \includegraphics[width=\textwidth]{figure/Fig1_Overview.png}
 \caption{\textbf{Near-sensor visuotactile depth reconstruction.}
-\textbf{a,} Paradigm comparison between conventional host-dependent processing (left), in which raw video is transferred to a host CPU or GPU for software reconstruction, and the near-sensor architecture presented here (right), which reconstructs each depth map on-chip at the sensing interface with a fixed latency of 0.211\,ms.
-\textbf{b,} Schematic of the visuotactile sensor, showing the soft elastomer dome, optical window, ring of red, green and blue light sources and OV5645 CMOS imager.
-\textbf{c,} Simplified block diagram of the streaming reconstruction pipeline operating at 166~MHz, comprising a photometric-stereo core and a spectral Poisson core; the end-to-end latency is fixed at 35{,}107~clock cycles (0.211\,ms), independent of contact geometry.
-\textbf{d,} Representative depth maps reconstructed on-chip at successive stages of a single press of a \placeholder{XXX} indenter into the elastomer, illustrating the dense contact geometry recovered directly at the sensing interface.}
+\textbf{a,} Paradigm comparison between conventional host-dependent processing (top), in which raw video is transferred to a host running an iterative multigrid solver with variable convergence cycles, and the near-sensor architecture presented here (bottom, blue background), which reconstructs each depth map on-chip using a streaming spectral DST solver with a fixed latency of 35{,}107~clock cycles (0.211\,ms), independent of contact geometry.
+\textbf{b,} Exploded schematic of the visuotactile sensor showing the PDMS elastomer, optical window, lens holder, RGB illumination ring, support frame, IMX219 CMOS imager, and enclosure.
+\textbf{c,} Detailed block diagram of the on-chip streaming reconstruction pipeline operating at 166~MHz. CMOS pixel stream (400~FPS) enters at left and passes through photometric stereo, divergence, forward DST, spectral-domain division ($\hat{f}/\lambda$), inverse IDST, and output formatting (sfix24), producing depth maps at $256 \times 256$ resolution with a deterministic end-to-end latency of 0.211\,ms. Streaming stages are line-buffered; DST--IDST stages are double-buffered with full-frame transposition.
+\textbf{d,} Sensor-on-hand integration: the visuotactile sensor mounted on a robotic finger (top) and the corresponding depth output during grasp contact (bottom), illustrating the on-chip tactile depth reflex pathway.
+\textbf{e,} Multi-dimensional comparison across four computing platforms. Scores are normalised per dimension to the best observed value across all platforms; absolute values are reported in Extended Data Table~X. The five dimensions are latency, power efficiency, throughput, board footprint, and timing determinism.
+\textbf{f,} Representative depth maps reconstructed on-chip at successive stages of a single press into the elastomer (0.000--0.667\,s), illustrating the dense contact geometry recovered directly at the sensing interface. Depth colour scale: blue = 0\,mm, white = 1\,mm, red = 2\,mm.}
 \label{fig:system}
 \end{figure}
 
