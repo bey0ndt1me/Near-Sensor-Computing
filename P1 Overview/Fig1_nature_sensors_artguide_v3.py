@@ -486,8 +486,8 @@ def draw_panel_a(ax):
     top_exts.append(draw_sensor_photo(ax, (xs[0], yt), host_img_size, "GelSight.png", None))
     top_exts.append(draw_raw_stack(ax, (xs[1], yt), host_img_size))
     top_exts.append(solver_card(ax, (xs[2], yt), (0.215, 0.215),
-                                "Host CPU / GPU", ("copy", "iter.", "depth"),
-                                "memory transfer + loop", "#666666", "#FFFFFF"))
+                                "Iterative multigrid", ("copy", "iter.", "depth"),
+                                "variable cycles", "#666666", "#FFFFFF"))
     top_exts.append(draw_depth(ax, (xs[3]-host_img_w/2, xs[3]+host_img_w/2,
                                     yt-host_img_h/2, yt+host_img_h/2), title="depth output"))
     top_exts.append(metric_note(ax, (xs[4], yt), (0.205, 0.285),
@@ -505,8 +505,8 @@ def draw_panel_a(ax):
     bottom_exts.append(draw_sensor_photo(ax, (xs[0], yb), img_size, "Sensor.png", None, fallback_color="#93C7BD"))
     bottom_exts.append(draw_raw_stack(ax, (xs[1], yb), img_size))
     bottom_exts.append(solver_card(ax, (xs[2], yb), (0.215, 0.215),
-                                   "On-chip pipeline", ("stream", "$1/\\lambda$", "depth"),
-                                   "spectral Poisson", BLUE, "#FFFFFF"))
+                                   "Spectral DST", ("stream", "$1/\\lambda$", "depth"),
+                                   "fixed 35,107 cycles", BLUE, "#FFFFFF"))
     bottom_exts.append(draw_depth(ax, (xs[3]-img_w/2, xs[3]+img_w/2,
                                        yb-img_h/2, yb+img_h/2), title=None))
     ax.text(xs[3], yb+img_h/2+0.020, "on-chip depth", ha="center", va="bottom",
@@ -662,7 +662,7 @@ def draw_panel_application(ax):
 def draw_panel_radar(ax):
     """panel e：雷达图；高区分度四色：蓝=This work, 青=Jetson, 橙=GPU, 灰=CPU。"""
     labels = ["Low\nlatency", "Power\nefficiency", "Throughput",
-              "Size", "Timing\ndeterminism"]
+              "Board\nfootprint", "Timing\ndeterminism"]
     angles = np.linspace(0, 2*np.pi, len(labels), endpoint=False).tolist()
     loop = angles + angles[:1]
     # 高辨识度四色: hero 深蓝 + 青/橙/灰，绿色盲友好，灰度打印可区分
@@ -692,9 +692,12 @@ def draw_panel_radar(ax):
         ax.plot(loop, closed, color=color, lw=lw, label=name, zorder=4)
         if "This work" in name:
             ax.fill(loop, closed, color=color, alpha=0.11, zorder=2)
-    ax.legend(loc="upper center", bbox_to_anchor=(0.50, -0.12), ncol=2,
+    ax.legend(loc="upper center", bbox_to_anchor=(0.50, -0.14), ncol=2,
               frameon=False, fontsize=5.0, handlelength=1.5,
               columnspacing=0.9, handletextpad=0.35)
+    # 归一化说明
+    ax.text(0.50, -0.28, "normalised per dimension to best observed value\nabsolute values in Extended Data Table",
+            transform=ax.transAxes, ha="center", va="top", fontsize=4.5, color=MUTED)
 
 
 def draw_press_schematic(ax, cx, y, w, h, progress):
@@ -767,6 +770,18 @@ def draw_panel_e(ax):
                                              arrowstyle="-|>", mutation_scale=4.2,
                                              lw=0.42, color="#8A949D",
                                              shrinkA=0, shrinkB=0))
+    # 共享深度标尺：蓝(0 mm) → 白(1 mm) → 红(2 mm)
+    from matplotlib.colors import LinearSegmentedColormap, Normalize
+    from matplotlib.colorbar import ColorbarBase
+    depth_cmap = LinearSegmentedColormap.from_list("depth_mm", ["#2166AC", "#F7F7F7", "#B2182B"], N=256)
+    depth_norm = Normalize(vmin=0, vmax=2)
+    cbar_ax = ax.inset_axes([0.035, -0.085, 0.930, 0.022])
+    cb = ColorbarBase(cbar_ax, cmap=depth_cmap, norm=depth_norm, orientation="horizontal",
+                      ticks=[0, 0.5, 1.0, 1.5, 2.0])
+    cb.ax.tick_params(labelsize=4.8, colors=TEXT, width=0.4)
+    cb.outline.set_linewidth(0.4)
+    cbar_ax.text(1.015, 0.5, "Depth (mm)", transform=cbar_ax.transAxes,
+                 ha="left", va="center", fontsize=4.8, color=TEXT)
 
 
 def make_figure():
