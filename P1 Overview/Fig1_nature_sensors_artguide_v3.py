@@ -770,10 +770,20 @@ def draw_panel_e(ax):
                                              arrowstyle="-|>", mutation_scale=4.2,
                                              lw=0.42, color="#8A949D",
                                              shrinkA=0, shrinkB=0))
-    # 共享深度标尺：蓝(0 mm) → 白(1 mm) → 红(2 mm)
+    # 共享深度标尺：蓝(0 mm) → 靛→绿→黄→橙 → 红(2 mm)，全光谱连续过渡
     from matplotlib.colors import LinearSegmentedColormap, Normalize
     from matplotlib.colorbar import ColorbarBase
-    depth_cmap = LinearSegmentedColormap.from_list("depth_mm", ["#2166AC", "#F7F7F7", "#B2182B"], N=256)
+    depth_cmap = LinearSegmentedColormap.from_list("depth_mm", [
+        "#0B1F5C",   # 0.0  深蓝 (deep)
+        "#1A4B8C",   # 0.5  蓝
+        "#2E7DB5",   # 1.0  蓝绿
+        "#3FA37E",   # 1.5  绿
+        "#6EBF4C",   # 2.0  黄绿
+        "#D5C93C",   # 2.5  黄
+        "#F0A328",   # 3.0  橙
+        "#E05A1F",   # 3.5  橙红
+        "#B2182B",   # 4.0  深红 (shallow)
+    ], N=256)
     depth_norm = Normalize(vmin=0, vmax=2)
     cbar_ax = ax.inset_axes([0.035, -0.085, 0.930, 0.022])
     cb = ColorbarBase(cbar_ax, cmap=depth_cmap, norm=depth_norm, orientation="horizontal",
