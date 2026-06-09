@@ -1,0 +1,28 @@
+platform,point_id,target_fps,processed_fps,idle_power_w,active_power_w,incremental_power_w,incremental_energy_per_frame_mj,bubble_size_w,meets_180_fps,energy_basis,notes
+This work,ASIC incremental 180 FPS,180,180,,,0.1519,0.8438888888888889,0.1519,Yes,incremental,Incremental/dynamic compute energy only; moved out of main Fig. 3d.
+This work,ASIC incremental 400 FPS,400,400,,,,,,Yes,incremental,Optional: fill with incremental/dynamic power estimate.
+This work,ASIC incremental max input,10131,10131,,,,,,Yes,incremental,Optional: fill with incremental/dynamic power estimate.
+Jetson Orin NX,Jetson Orin NX incremental 30 FPS,30,,,,,,,,incremental,Fill from staged measurement: incremental_power_w = active_power_w - idle_power_w; energy auto-computed if power and FPS are filled.
+Jetson Orin NX,Jetson Orin NX incremental 45 FPS,45,,,,,,,,incremental,Fill from staged measurement: incremental_power_w = active_power_w - idle_power_w; energy auto-computed if power and FPS are filled.
+Jetson Orin NX,Jetson Orin NX incremental 60 FPS,60,,,,,,,,incremental,Fill from staged measurement: incremental_power_w = active_power_w - idle_power_w; energy auto-computed if power and FPS are filled.
+Jetson Orin NX,Jetson Orin NX incremental 90 FPS,90,,,,,,,,incremental,Fill from staged measurement: incremental_power_w = active_power_w - idle_power_w; energy auto-computed if power and FPS are filled.
+Jetson Orin NX,Jetson Orin NX incremental 120 FPS,120,,,,,,,,incremental,Fill from staged measurement: incremental_power_w = active_power_w - idle_power_w; energy auto-computed if power and FPS are filled.
+Jetson Orin NX,Jetson Orin NX incremental 180 FPS,180,,,,,,,,incremental,Fill from staged measurement: incremental_power_w = active_power_w - idle_power_w; energy auto-computed if power and FPS are filled.
+CPU i7-13700,CPU i7-13700 incremental 30 FPS,30,,,,,,,,incremental,Fill from staged measurement: incremental_power_w = active_power_w - idle_power_w; energy auto-computed if power and FPS are filled.
+CPU i7-13700,CPU i7-13700 incremental 45 FPS,45,,,,,,,,incremental,Fill from staged measurement: incremental_power_w = active_power_w - idle_power_w; energy auto-computed if power and FPS are filled.
+CPU i7-13700,CPU i7-13700 incremental 60 FPS,60,,,,,,,,incremental,Fill from staged measurement: incremental_power_w = active_power_w - idle_power_w; energy auto-computed if power and FPS are filled.
+CPU i7-13700,CPU i7-13700 incremental 90 FPS,90,,,,,,,,incremental,Fill from staged measurement: incremental_power_w = active_power_w - idle_power_w; energy auto-computed if power and FPS are filled.
+CPU i7-13700,CPU i7-13700 incremental 120 FPS,120,,,,,,,,incremental,Fill from staged measurement: incremental_power_w = active_power_w - idle_power_w; energy auto-computed if power and FPS are filled.
+CPU i7-13700,CPU i7-13700 incremental 180 FPS,180,,,,,,,,incremental,Fill from staged measurement: incremental_power_w = active_power_w - idle_power_w; energy auto-computed if power and FPS are filled.
+CPU i7-13700,CPU i7-13700 incremental 240 FPS,240,,,,,,,,incremental,Fill from staged measurement: incremental_power_w = active_power_w - idle_power_w; energy auto-computed if power and FPS are filled.
+CPU i7-13700,CPU i7-13700 incremental 320 FPS,320,,,,,,,,incremental,Fill from staged measurement: incremental_power_w = active_power_w - idle_power_w; energy auto-computed if power and FPS are filled.
+CPU i7-13700,CPU i7-13700 incremental 400 FPS,400,,,,,,,,incremental,Fill from staged measurement: incremental_power_w = active_power_w - idle_power_w; energy auto-computed if power and FPS are filled.
+RTX 4090,RTX 4090 incremental 30 FPS,30,,,,,,,,incremental,Fill from staged measurement: incremental_power_w = active_power_w - idle_power_w; energy auto-computed if power and FPS are filled.
+RTX 4090,RTX 4090 incremental 45 FPS,45,,,,,,,,incremental,Fill from staged measurement: incremental_power_w = active_power_w - idle_power_w; energy auto-computed if power and FPS are filled.
+RTX 4090,RTX 4090 incremental 60 FPS,60,,,,,,,,incremental,Fill from staged measurement: incremental_power_w = active_power_w - idle_power_w; energy auto-computed if power and FPS are filled.
+RTX 4090,RTX 4090 incremental 90 FPS,90,,,,,,,,incremental,Fill from staged measurement: incremental_power_w = active_power_w - idle_power_w; energy auto-computed if power and FPS are filled.
+RTX 4090,RTX 4090 incremental 120 FPS,120,,,,,,,,incremental,Fill from staged measurement: incremental_power_w = active_power_w - idle_power_w; energy auto-computed if power and FPS are filled.
+RTX 4090,RTX 4090 incremental 180 FPS,180,,,,,,,,incremental,Fill from staged measurement: incremental_power_w = active_power_w - idle_power_w; energy auto-computed if power and FPS are filled.
+RTX 4090,RTX 4090 incremental 240 FPS,240,,,,,,,,incremental,Fill from staged measurement: incremental_power_w = active_power_w - idle_power_w; energy auto-computed if power and FPS are filled.
+RTX 4090,RTX 4090 incremental 320 FPS,320,,,,,,,,incremental,Fill from staged measurement: incremental_power_w = active_power_w - idle_power_w; energy auto-computed if power and FPS are filled.
+RTX 4090,RTX 4090 incremental 400 FPS,400,,,,,,,,incremental,Fill from staged measurement: incremental_power_w = active_power_w - idle_power_w; energy auto-computed if power and FPS are filled.

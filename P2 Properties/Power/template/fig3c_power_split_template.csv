@@ -1,0 +1,5 @@
+platform,resolution_width,resolution_height,fps,total_power_w,core_fraction_percent,background_fraction_percent,core_power_w,background_power_w,power_meter,measurement_window,notes
+This work,128,128,180,0.305,0.032786885,96.72131148,0.01,0.295,,steady-state,"This work in green; core plotted bottom, background top"
+Jetson Orin NX,128,128,180,6.623149253731344,0.096852604,90.31473957,0.6414692537313442,5.98168,,steady-state,
+CPU i7-13700,128,128,180,32.382119617727334,0.695208847,30.47911526,22.51233606,9.869783562,,steady-state,
+RTX 4090,128,128,180,70.85914777327935,0.136269166,86.37308335,9.655917004048575,61.20323077,,steady-state,Use RTX 4090 consistently for all GPU baselines

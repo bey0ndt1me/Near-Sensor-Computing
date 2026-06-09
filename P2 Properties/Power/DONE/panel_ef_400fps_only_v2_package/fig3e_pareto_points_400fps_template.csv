@@ -1,0 +1,7 @@
+platform,device,resolution,target_fps,selected_fps,active_fps,latency_p50_ms,latency_p95_ms,latency_p99_ms,idle_power_w,active_power_w,incremental_power_w,energy_per_frame_mj,miss_rate,notes
+CPU,i7-13700,64,400,400,,,,,,,,,,
+CPU,i7-13700,128,400,400,,,,,,,,,,
+CPU,i7-13700,256,400,400,,,,,,,,,,
+GPU,RTX 4090,64,400,400,,,,,,,,,,
+GPU,RTX 4090,128,400,400,,,,,,,,,,
+GPU,RTX 4090,256,400,400,,,,,,,,,,

@@ -1,0 +1,684 @@
+% ============================================================
+% FPGA Visuotactile Sensor — Nature Sensors 完整论文骨架
+% 编译器: pdflatex  |  直接复制到 Overleaf 使用
+% 
+% 使用说明:
+%   蓝色 [写作提示] = 每段的写作逻辑，写完后整段删除
+%   橙色文字        = placeholder，需替换为实测数据
+%   红色 [TODO]     = 需要你补充的内容
+%   写完全文后搜索 \zhcue \placeholder \todo 确认全部清除
+%
+% Nature Sensors 格式约束:
+%   主文正文 ≤ 3500 词 (不含 Abstract/Methods/References/Captions)
+%   Abstract ~ 150 词，无引用
+%   Display items ≤ 6 (Fig + Table 合计)
+%   Extended Data ≤ 10
+%   Methods 无字数限制，放在 References 之后
+% ============================================================
+
+\documentclass[10pt,a4paper]{article}
+
+% ---------- 基础包 ----------
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{mathptmx}           % Times 字体
+\usepackage[margin=1in]{geometry}
+\usepackage{setspace}
+\onehalfspacing                  % Nature 要求 1.5 倍行距
+
+\usepackage{graphicx}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage[numbers,sort&compress]{natbib}
+
+% ---------- CJK 中文支持 (pdflatex) ----------
+\usepackage{CJKutf8}
+% 用法: 在需要中文的地方包裹 \begin{CJK}{UTF8}{gbsn}...\end{CJK}
+% 我们把它嵌入 \zhcue 命令中，这样正文写英文不受影响
+
+% ---------- 自定义命令（提交前全部删除） ----------
+\newcommand{\zhcue}[1]{%
+  \par\noindent
+  \colorbox{blue!8}{%
+    \parbox{\dimexpr\linewidth-2\fboxsep}{%
+      \small\color{blue!70!black}%
+      \begin{CJK}{UTF8}{gbsn}[写作提示: #1]\end{CJK}%
+    }%
+  }\par\smallskip
+}
+\newcommand{\todo}[1]{\textcolor{red}{\textbf{[TODO: #1]}}}
+\newcommand{\placeholder}[1]{\textcolor{orange}{#1}}
+\newcommand{\wc}[1]{\hfill{\scriptsize\color{gray}[Target: #1 words]}}
+
+% ---------- 预定义数据命令（实测后替换） ----------
+\newcommand{\latPython}{\placeholder{15}}             % ms
+\newcommand{\latCpp}{\placeholder{3.0}}               % ms
+\newcommand{\latCUDA}{\placeholder{1.5}}              % ms
+\newcommand{\pwrFPGA}{\placeholder{0.322}}                % W
+\newcommand{\pwrGPU}{\placeholder{200}}               % W
+\newcommand{\speedupPy}{\placeholder{75$\times$}}
+\newcommand{\reflexFPGA}{\placeholder{0.211}}           % ms
+\newcommand{\reflexCPU}{\placeholder{30}}             % ms
+\newcommand{\rmseFxFl}{8.8 \times 10^{-4}}           % 已有数据
+\newcommand{\psnrTF}{\placeholder{30.3}}              % dB, 已有
+\newcommand{\clockMHz}{\placeholder{166}}
+\newcommand{\totalCyc}{\placeholder{35{,}107}}
+
+% ============================================================
+\title{Physical near-sensor computing for instantaneous embodied visuotactile perception}
+
+
+\author{Author A\textsuperscript{1},
+        Author B\textsuperscript{1},
+        Author C\textsuperscript{1,*}\\[4pt]
+        \small\textsuperscript{1}Affiliation\\
+        \small\textsuperscript{*}Corresponding: \texttt{email@example.com}}
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Visuo-tactile sensing is one of the most information-rich modalities for contact perception in robotic manipulation, but existing pipelines remain computationally intensive and energy inefficient, limiting their responsiveness and practical deployment. 
+Here we present an ultrafast visuo-tactile sensing and computing system that performs real-time 3D surface reconstruction directly at the sensing interface. The system integrates a high-speed visuo-tactile sensor with an on-chip accelerator that solves the Poisson equation using a fixed-latency formulation, eliminating host-side computation. 
+Operating at 400~Hz, the architecture achieves 0.211~ms latency within an approximately 4~W power envelope, providing an order-of-magnitude improvement in energy efficiency over conventional GPU-based approaches. 
+The resulting low-latency feedback enables rapid contact responses, with reaction speeds approaching those of human reflexes. 
+These results establish near-sensor computation as an effective approach for overcoming the fundamental trade-off between fidelity, latency, and energy efficiency in visuo-tactile perception.
+\end{abstract}
+
+\section*{Introduction}
+
+% ──── P1:  ────
+Visuotactile sensors are known to provide particularly rich spatial information among tactile sensing modalities~\cite{yuan2017gelsight,lambeta2020digit,taylor2022gelslim3,li2024signalprocessing,luo2025tactilerobotics}. By imaging the deformation of a soft elastomer under structured illumination, they reconstruct dense three-dimensional contact geometry via photometric stereo and Poisson integration~\cite{yuan2017gelsight,li2014gelsight}. From the reconstructed depth maps, a wide range of physically grounded quantities can be derived without task-specific training, including contact force distributions~\cite{ma2019densetactile}, surface curvature~\cite{lin2023_9dtact}, incipient slip~\cite{dong2017improved}, and object pose~\cite{suresh2024neuralfeels,zhao2026gelslam}, to mention a few. This unified representation and generality are unmatched by capacitive, resistive, or piezoelectric sensing modalities that currently used in robot applications~\cite{chen2025capacitive,li2024signalprocessing}.
+
+Despite their rich spatial representation, current visuo-tactile sensors are still too slow for many high-speed robotic tasks. The principal bottleneck is 3D reconstruction: recovering contact geometry typically requires solving a Poisson partial differential equation over dense gradient fields, a computation that is substantially more expensive than the processing used in most other tactile modalities. On general-purpose CPUs, reconstruction often takes tens of milliseconds~\cite{yuan2017gelsight}, with further variability arising from operating-system scheduling and host-side data transfer. This latency reduces control bandwidth and temporal determinism when geometric feedback is required~\cite{lee2025highbandwidth}, limiting the use of visuo-tactile sensing in rapid slip reaction, dynamic manipulation, and other ultrafast closed-loop behaviours.
+
+Existing efforts to mitigate this bottleneck have largely followed two directions, each involving a fundamental trade-off. One line of work improves throughput by simplifying the representation, for example by estimating surface normals or directly predicting task-specific variables from raw tactile images instead of reconstructing full 3D geometry~\cite{li2024signalprocessing,kota2026_3dcal}. Such approaches can achieve update rates of around 100--200~Hz in recent systems, but they no longer provide a unified geometric description of contact that can be reused across tasks. Their outputs are often tied to specific sensing conditions, calibration procedures, or supervised training pipelines, which limits generalization across sensors and applications. A second direction pursues hardware-level acceleration through event-based tactile sensing, which replaces conventional frame-based imaging with event-based tactile sensors and can reach kilohertz-level temporal resolution~\cite{funk2024evetac,jiang2026spikingtac}. However, because these signals are sparse and encode only temporal changes rather than dense surface structure, such systems are mainly suited to coarse perceptual tasks such as contact detection or classification, and remain unsuitable for dense geometric reconstruction such as depth estimation~\cite{funk2024evetac}.
+
+
+
+% require per-sensor labelled datasets~\cite{kota2026_3dcal}
+% End-to-end neural networks bypass the Poisson equation by predicting task-specific quantities directly from raw images~\cite{li2024signalprocessing,kota2026_3dcal}, yet remain opaque, require per-sensor labelled datasets~\cite{kota2026_3dcal} and inherit GPU scheduling variability.
+
+More recently, near-sensor and in-sensor computing paradigms have been explored in tactile sensing as a way to reduce delay and improve efficiency~\cite{zhou2020nearsensor}. Prior studies have demonstrated edge-side processing for low-level operations such as filtering or feature extraction in capacitive~\cite{chen2025capacitive,cho2025npjflex}, piezoresistive~\cite{XXX}, and other tactile sensing platforms~\cite{XXX}, highlighting the value of moving simple signal processing closer to the sensor.
+However, extending this strategy to visuo-tactile sensing is substantially more challenging. The central difficulty is that useful output requires dense 3D surface reconstruction, which in turn demands solving a Poisson equation at the sensor interface in real time. 
+In parallel, hardware-accelerated PDE solvers have been developed for application domains unrelated to tactile perception, such as scientific computing and medical imaging~\cite{kamalakkannan2021fpgastencil,tomczak2023nsfpga,elaraby2007multigridfpga,siddiqui2017fpgasense,omer2020fpgasense}. These architectures typically rely on iterative numerical methods, including multigrid, Jacobi, and conjugate-gradient solvers, whose convergence depends on data-dependent iteration counts and result in undetermined latency reaching seconds level.
+By contrast, robotic visuo-tactile perception demands dense reconstruction at the camera frame rate, with deterministic low latency and within a tightly constrained power budget. Achieving real-time Poisson reconstruction under these conditions remains an open challenge beyond the scope of existing edge-computing tactile systems and prior hardware PDE accelerators.
+
+To address this gap, we present a near-sensor visuo-tactile computing architecture that performs dense 3D reconstruction directly at the sensing interface (Fig.~\ref{fig:system}a,c). The system integrates an ultrafast visuo-tactile sensor operating at 400~Hz with an on-chip Poisson accelerator that reconstructs surface geometry at the sensor's native spatial resolution. Unlike conventional iterative solvers, the proposed accelerator adopts a spectral formulation with fixed computational cost, so that execution time is independent of contact geometry. The computation is implemented as a fully streaming pipeline without data-dependent branching or convergence loops, enabling strictly deterministic low-latency operation.
+At a resolution of $256\times256$ taxels and a clock frequency of 166~MHz, the system achieves a reconstruction latency of only 0.211~ms, substantially faster than conventional CPU- and GPU-based implementations while operating within only 4~W power envelope. This combination of speed, determinism, and energy efficiency enables ultrafast tactile feedback for closed-loop reflexive responses (Fig.~\ref{fig:reflex}a), overcoming the long-standing trade-off between geometric fidelity, latency, and power consumption in visuo-tactile perception.
+
+% present a streaming hardware architecture that performs the complete visuotactile depth reconstruction---from raw RGB pixel stream to dense $128 \times 128$ depth map---entirely on a single chip (Fig.~\ref{fig:system}a,c). The key architectural choice is the adoption of a spectral Poisson solver that diagonalises the discrete Laplacian via the discrete sine transform (DST), replacing the iterative multigrid method used in all existing visuotactile software~\cite{yuan2017gelsight} with a non-iterative, fixed-length computation whose cycle count is independent of contact geometry. This spectral formulation decomposes naturally into a sequence of streaming stages---gradient lookup, finite-difference divergence, forward DST, element-wise spectral division, and inverse DST---with no data-dependent branching and no convergence loop, properties that are essential for deterministic hardware execution but offer no advantage in software (where iterative solvers are faster for this problem size). We implement each DST as a pipelined radix-2 FFT with input reordering and phase correction~\cite{makhoul1980fct}, enabling a single hardware core to serve both forward and inverse passes. The two-dimensional transform is computed separably, connected by ping-pong double-buffered matrix transpositions that overlap with computation; a systematic fixed-point bit-width analysis identifies 24 bits as the precision saturation point beyond which additional word length yields no measurable accuracy gain.
+
+% ================================================================
+% 2.1  Near-sensor depth reconstruction architecture
+% ================================================================
+\section*{Results}
+\subsection*{Ultrafast Visuotactile Sensing Based on Near-sensor Computation Architecture} 
+
+% ---- P1: The Physics and the Bottleneck (Why Poisson?) ----
+% Worse still 改一下，要强调功耗会让机器人的边缘硬件难以应付。
+High-resolution visuotactile sensors typically rely on imaging arrays to capture the deformation of a soft elastomer. Under structured illumination, a prominent class of these sensors essentially measures local surface gradients—how the surface tilts and orients—rather than measuring depth directly~\cite{yuan2017gelsight}. 
+Recovering the actual 3D shape of the contact requires mathematically integrating these gradient vectors across the entire sensor. 
+Because optical measurements are inherently noisy, direct path-wise integration accumulates measurement noise and yields path-dependent artifacts. Finding the optimal smooth surface becomes a global integration problem, formulated as solving a Poisson partial differential equation ($\nabla^2 z = \nabla \cdot \mathbf{g}$). 
+In conventional setups, this means streaming raw RGB video to a host processor, where the depth map is reconstructed in software by a fast Poisson solver, typically based on the discrete sine transform~\cite{yuan2017gelsight,wang2021gelsightwedge}.
+The physical separation between the sensor and the host processing unit, however, introduces both data-transfer latency and substantial power consumption~\cite{chen2025capacitive}, and the host runtime varies from frame to frame under operating-system scheduling. Together these factors constrain deployment on the power- and latency-limited edge platforms typical of mobile robots.
+
+
+% ---- P2: 
+Fig.~\ref{fig:system} presents our visuotactile perception system, which comprises a visuotactile sensor running at 400 FPS, and a low latency, highly power efficient computational architecture that reconstructs a dense depth map directly from the raw pixel stream, without host intervention (Fig.~\ref{fig:system}a). 
+In conventional host-dependent processing, reconstruction runs on a shared CPU or GPU whose runtime fluctuates between frames, and the raw video must be transferred off the sensor before any computation begins. The near-sensor architecture instead produces each depth frame on-chip at a fixed latency, removing the host from the reconstruction path.
+The sensor comprises a soft elastomer dome, an optical window, a ring of red, green and blue light sources and an OV5645 CMOS imager (Fig.~\ref{fig:system}b). Contact deforms the elastomer, and under the three-colour illumination the deformation is rendered as colour-coded intensity gradients; as is characteristic of this sensor family, these intensities encode the local surface gradient at each pixel rather than depth~\cite{yuan2017gelsight}, so that recovering shape reduces to the gradient-integration problem above. Optical and illumination details are given in Methods and Supplementary Section~SXXX.
+
+The architecture is built around a spectral Poisson solver, which exploits the eigen-decomposition of the discrete Laplacian under Dirichlet boundary conditions.
+Specifically, the two-dimensional Poisson equation $\nabla^2 z = \nabla \cdot \mathbf{g}$ reduces to element-wise division in the spectral domain after a discrete sine transform (DST), yielding an algebraically exact solution in a fixed number of arithmetic operations~\cite{strang2007cse} (see Methods and Supplementary Section~S1). 
+Unlike iterative multigrid solvers, whose convergence time depends on the input gradient field and target accuracy~\cite{elaraby2007multigridfpga,kamalakkannan2021fpgastencil}, the spectral formulation executes an identical cycle count for every frame, a property that is amenable to a fully pipelined circuit implementation.
+
+The complete pipeline (Fig.~\ref{fig:system}c) is implemented as a streaming datapath on a Xilinx Zynq UltraScale+ FPGA: pixels enter in raster-scan order at the camera pixel rate and exit as depth values with no frame-level buffering before the transform stages. 
+A photometric-stereo core converts the raw RGB stream into per-pixel surface gradients under the tri-color illumination model, and a Poisson core integrates these gradients into a dense depth map by the spectral method, with each one-dimensional DST computed by a pipelined FFT core with input reordering and phase correction~\cite{makhoul1980fct} and the two-dimensional transform performed separably through double-buffered transpositions that overlap with computation. 
+Because the cores form a single feed-forward pipeline, gradient estimation and Poisson integration proceed concurrently on successive regions of each frame, so the end-to-end latency is fixed and independent of contact geometry. 
+Representative depth maps reconstructed on-chip over the course of a single press are shown in Fig.~\ref{fig:system}d, illustrating the dense geometry recovered directly at the sensing interface as contact develops.
+In the following sections we characterise this architecture in turn: its deterministic latency and power efficiency, the fidelity of the reconstructed geometry, and its use as a low-latency tactile front end.
+
+
+% ---- Fig. 1 位置 ----
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{figure/Fig1_Overview.png}
+\caption{\textbf{Near-sensor visuotactile depth reconstruction.}
+\textbf{a,} Paradigm comparison between conventional host-dependent processing (left), in which raw video is transferred to a host CPU or GPU for software reconstruction, and the near-sensor architecture presented here (right), which reconstructs each depth map on-chip at the sensing interface with a fixed latency of 0.211\,ms.
+\textbf{b,} Schematic of the visuotactile sensor, showing the soft elastomer dome, optical window, ring of red, green and blue light sources and OV5645 CMOS imager.
+\textbf{c,} Simplified block diagram of the streaming reconstruction pipeline operating at 166~MHz, comprising a photometric-stereo core and a spectral Poisson core; the end-to-end latency is fixed at 35{,}107~clock cycles (0.211\,ms), independent of contact geometry.
+\textbf{d,} Representative depth maps reconstructed on-chip at successive stages of a single press of a \placeholder{XXX} indenter into the elastomer, illustrating the dense contact geometry recovered directly at the sensing interface.}
+\label{fig:system}
+\end{figure}
+
+
+% ================================================================
+% 2.2  Deterministic latency and zero jitter
+% ================================================================
+\subsection*{Deterministic latency and power efficiency}
+
+% --- P1 ---
+Robotic feedback control requires perception latency that is not only low but predictable. The latency with respect to resolution is illustrated in Fig.~\ref{fig:latency}a. At 166 MHz, reconstructing a XXXX resolution grids consumes only XXX ms. Such latency is significantly faster than Intel XXX CPU running at XXX GHz, and YYY GPU running at MMM hertz. In addition to general computational architecture, such latency is significantly faster than state-of-the-art hardware Poisson solvers. Our 0.211ms delay is in contrast to \cite{XXX} which  reportedly solve the same scale poission equation at XXXX ms. At pipeline's full load capability, it is sufficient to process 10 cameras for at least 100 FPS framerate. When handling a single sensor, our system demonstrates the capability to hand IMX219's 400 FPS rate in real time (Supp video). Such low latency is owning to our architecture design. The gradient-estimation and divergence stages are purely combinational and add no pipeline delay; latency arises from the FFT-based DST and IDST modules, whose reordering buffers each hold one row, and from two matrix transpositions, each buffering one full frame (see Methods and Extended Data Table~\ref{tab:ed_latency}). 
+
+
+% Such latency is owning to our architecture design. The gradient-estimation and divergence stages are purely combinational and add no pipeline delay; latency arises from the FFT-based DST and IDST modules, whose reordering buffers each hold one row, and from two matrix transpositions, each buffering one full frame (see Methods and Extended Data Table~\ref{tab:ed_latency}). The pipeline reaches a theoretical throughput of \placeholder{${\sim}5{,}000$}\,frames per second; the practical frame rate is sufficient to process at least 10 cameras at 100 FPS framerate.
+
+
+Because the pipeline contains no iterative loops, its latency and resource consumption scale predictably with image resolution $N \times N$ (Extended Data Table~\ref{tab:ed_scaling}). The dominant latency contribution is the FFT-based DST/IDST passes each of complexity $O(N \log N)$ per row or column; Particularly, the matrix inversion in 2D transform contributes most to the latency, thus total latency therefore grows as $O(N^2)$. 
+
+For memory consumption, on-chip memory is governed by the two full-frame transposition buffers (each ping-pong double-buffered), scaling as $4 N^2 B$ bits where $B$ is the word length. At $128 \times 128$ with $B = 24$\,bits implemented on FPGA, the transposition buffers occupy \placeholder{22} of 96 available UltraRAM blocks (\placeholder{23}\,\%); at $256 \times 256$ this rises to \placeholder{88} blocks (\placeholder{92}\,\%), approaching the device capacity. DSP and logic utilisation remain approximately constant because the pipelined FFT core is reused across rows and columns. A $256 \times 256$ configuration has been synthesised and verified on the same Zynq UltraScale+ device, achieving a latency of \placeholder{${\sim}0.8$}\,ms at \placeholder{${\sim}4$}\,W with on-chip memory only and with no degradation in reconstruction accuracy.
+
+% ---- P2: 软件对比 ----
+Software implementations on general-purpose processors cannot match this determinism. Over \placeholder{1{,}000} consecutive frames, the Python baseline (SciPy DST, Intel \placeholder{i7-12700}) exhibits a mean latency of \latPython\,ms with a 99th-percentile tail of \placeholder{28}\,ms; a CUDA implementation on a desktop GPU (cuFFT, NVIDIA \placeholder{RTX~3060}) achieves \latCUDA\,ms mean with sporadic spikes up to \placeholder{4.2}\,ms (Fig.~\ref{fig:latency}a). To provide a fairer embedded comparison, we also benchmarked the reconstruction on an NVIDIA Jetson Orin Nano (\placeholder{15}\,W TDP), the embedded GPU most commonly proposed for on-robot vision processing~\cite{mittal2019jetsonsurvey}. Using cuFFTDx device-side transforms to eliminate host--device transfer overhead, the Jetson achieves a mean latency of \placeholder{${\sim}2.0$}\,ms with a 99th-percentile of \placeholder{${\sim}3.5$}\,ms---faster than the desktop CPU but still subject to scheduling variability. Operating-system scheduling, memory allocation, and GPU kernel launch overhead make this variability irreducible on any shared-resource architecture, whether desktop or embedded.
+
+% ---- P3: 功耗 ----
+The hardware pipeline also offers a substantial power advantage (Fig.~\ref{fig:latency}c). Implemented on a FPGA, it draws \placeholder{${\sim}$\pwrFPGA}\,W, compared with \placeholder{${\sim}$15}\,W for a Jetson Orin Nano's process, \placeholder{${\sim}$100}\,W for the CPU workstation running the C++ baseline, and \placeholder{${\sim}$\pwrGPU}\,W for a desktop GPU workstation executing the same reconstruction in CUDA. Expressed as reconstruction throughput per watt, the on-chip solution achieves \placeholder{${\sim}1{,}000$}\,frames\,s$^{-1}$\,W$^{-1}$, roughly \placeholder{300}$\times$ higher than the desktop GPU path and \placeholder{${\sim}30\times$} higher than the Jetson. This energy envelope is compatible with deployment on battery-powered or untethered robotic hands, where even embedded GPU-class computation strains the power budget.
+
+% ---- P4: Latency-power Pareto ----
+Figure~\ref{fig:latency}d maps each platform in the latency--power plane. Among all systems that produce dense depth maps, the on-chip pipeline occupies the Pareto-optimal corner---simultaneously the lowest latency and lowest power. The Jetson Orin Nano provides the nearest embedded-GPU alternative but operates at approximately \placeholder{$3\times$} higher power and \placeholder{$10\times$} higher latency, with non-deterministic timing. Our architecture brings visuotactile depth reconstruction into the temporal and energetic neighbourhood of event-based sensing without sacrificing spatial richness. 
+% ---- Fig. 2    位置 ----
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{figure/Fig2_Latency_Power.png}
+% \fbox{\parbox{0.95\textwidth}{\centering\vspace{3.5cm}
+% \textbf{Fig.~3 placeholder}\\[4pt]
+% \textbf{a,} Latency CDF (log-x) \quad
+% \textbf{b,} Pipeline breakdown \quad
+% \textbf{c,} Power bars (log-y) \quad
+% \textbf{d,} Latency--Power scatter
+% \vspace{3.5cm}}}
+\caption{\textbf{Deterministic latency and power efficiency.}
+\textbf{a,} Cumulative distribution of per-frame latency over \placeholder{1{,}000} frames.
+The FPGA pipeline (blue) produces an identical latency of \placeholder{0.211}\,ms for every frame; CPU and GPU implementations show variable latency with long-tail outliers caused by OS scheduling.
+\textbf{b,} Latency breakdown by pipeline stage at \clockMHz\,MHz
+(\totalCyc{} cycles total).
+\textbf{c,} System-level power: FPGA \placeholder{${\sim}$\pwrFPGA}\,W vs.\ GPU workstation
+\placeholder{${\sim}$\pwrGPU}\,W.
+\textbf{d,} Latency--power landscape of existing tactile processing systems; the FPGA pipeline occupies the Pareto-optimal corner.}
+\label{fig:latency}
+\end{figure}
+
+% ================================================================
+% 2.3  Reconstruction accuracy
+% ================================================================
+\subsection*{Reconstruction Quality} 
+
+% ---- P1: FPGA vs Python 一致性 ----
+The 24-bit fixed-point datapath introduces no significant loss in reconstruction quality relative to a 64-bit floating-point software reference (Fig.~\ref{fig:accuracy}a,c). For each test indentation (see Methods), we recorded the raw RGB frame and the hardware depth map simultaneously, then reconstructed the same frame offline in Python (SciPy DST, float64) as a bit-exact software baseline. 
+Across all tested contact geometries, the root-mean-square error between hardware and software depth maps is $\rmseFxFl$, corresponding to a PSNR of \psnrTF\,dB (defined as $20\log_{10}(z_\mathrm{max}/\mathrm{RMSE})$, where $z_\mathrm{max}$ is the peak reconstructed depth). The residual is attributable entirely to fixed-point rounding; the two outputs are indistinguishable in the depth-map visualisation (Fig.~\ref{fig:accuracy}a).
+
+% ---- P2: vs Ground Truth ----
+When both outputs are compared against the analytical ground-truth profile of the known indenter geometry, the dominant error source shifts from the computational pipeline to the sensor's photometric calibration. The hardware reconstruction achieves an RMSE of \placeholder{${\sim}0.04$}\,mm relative to the ground-truth depth profile---virtually identical to the software baseline (\placeholder{${\sim}0.04$}\,mm), confirming that the arithmetic pipeline contributes negligible additional error (Fig.~\ref{fig:accuracy}c). Pixel-wise residuals concentrate at the contact boundary (Fig.~\ref{fig:accuracy}b), a pattern shared by hardware and software alike and attributable to the Dirichlet boundary assumption inherent to all Poisson-based visuotactile reconstruction~\cite{yuan2017gelsight,li2014gelsight} (see Discussion).
+
+% ---- P3: 定点位宽饱和 ----
+A bit-width sweep across the full pipeline confirms that 24-bit fixed-point arithmetic is the precision saturation point (Fig.~\ref{fig:accuracy}d). Reducing from 32 to 24 bits leaves the reconstruction error unchanged (RMSE $= \rmseFxFl$); further reduction to 16 bits degrades accuracy by \placeholder{${\sim}10$}\,dB in PSNR, with the spectral-division stage identified as the precision-limiting bottleneck (see Supplementary Section~S4 for per-stage sensitivity analysis). The deployed pipeline therefore operates at 24 bits---the minimum word length that preserves full reconstruction fidelity.
+
+% ---- Fig. 3 位置 ----
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{figure/fig2_error.png}
+% \fbox{\parbox{0.95\textwidth}{\centering\vspace{3.5cm}
+% \textbf{Fig.~2 placeholder}\\[4pt]
+% \textbf{a,} Depth map grid (FPGA / Python / GT) \quad
+% \textbf{b,} Error heatmap \quad
+% \textbf{c,} RMSE bars \quad
+% \textbf{d,} Bit-width sweep
+% \vspace{3.5cm}}}
+\caption{\textbf{Reconstruction accuracy and fixed-point fidelity.}
+\textbf{a,} Depth maps from FPGA (left), Python float64 (centre), and analytical ground truth (right) for two indenter geometries at \placeholder{0.5}\,mm indentation.
+\textbf{b,} Pixel-wise error (FPGA $-$ GT) for the hemisphere; residuals concentrate at the contact boundary.
+\textbf{c,} RMSE by indenter shape; matched bar heights confirm no measurable accuracy loss from fixed-point processing.
+\textbf{d,} RMSE vs.\ bit width. Precision saturates at 24 bits (RMSE $= \rmseFxFl$), the operating point of the deployed pipeline.}
+\label{fig:accuracy}
+\end{figure}
+
+
+% ================================================================
+%   Sub-millisecond tactile reflex and slip detection
+% ================================================================
+\subsection*{Applications enabled by near-sensor depth reconstruction}
+
+\subsubsection*{Real-time depth streaming during manipulation}
+
+To validate the near-sensor architecture under realistic operating conditions, we mounted the sensor on the fingertip of a \placeholder{Franka Emika / Allegro} robotic hand and performed continuous grasping sequences with objects of varying geometry and compliance (Fig.~\ref{fig:applications}a). During each grasp, the pipeline streams depth maps at the full camera frame rate (\placeholder{${\sim}200$}\,fps) with no dropped frames and no latency variation, producing a temporally dense record of the evolving contact surface. Figure~\ref{fig:applications}b shows representative depth-map sequences for a \placeholder{rigid cylinder, a soft foam ball, and a flat credit card}: the reconstructed geometry captures both the macroscopic contact shape and fine surface features such as embossed text, at a temporal resolution that reveals the transient dynamics of initial contact, 
+steady-state deformation, and release. The continuous, jitter-free depth stream contrasts with the intermittent availability of depth data in conventional host-dependent pipelines, where individual frames may be delayed or dropped under computational load~\cite{lambeta2020digit}.
+
+\subsubsection*{Sub-millisecond protective reflex}
+
+In contact-rich manipulation, the interval between initial touch and irreversible damage to a fragile object defines a \emph{safety window} whose duration depends on the object's compliance and the gripper's closing speed. At typical approach velocities (\placeholder{${\sim}10$}\,mm\,s$^{-1}$), this window is roughly \placeholder{5--10}\,ms for a ripe cherry tomato and may shrink to \placeholder{${\sim}2$}\,ms for a thin-walled plastic cup. A protective reflex is useful only if it completes within this window---a constraint that excludes conventional software loops operating at \placeholder{20--50}\,ms.
+
+The near-sensor pipeline enables a hardware reflex pathway that fits within even the narrowest safety windows (Fig.~\ref{fig:reflex}a). A hard-wired threshold comparator evaluates each depth value as it exits the reconstruction pipeline; when the peak depth exceeds a programmable threshold ($z_\mathrm{thr} = \placeholder{0.1}$\,mm), a GPIO line asserts and directly drives the actuator, bypassing any host processor. Over \placeholder{50} trials (see Methods for protocol), the contact-to-detection latency of the hardware pathway is \reflexFPGA\,$\pm$\,\placeholder{$<$0.1}\,ms (Fig.~\ref{fig:reflex}c), with the finger beginning visible retraction within \placeholder{2--3} high-speed camera frames (\placeholder{${\sim}7$--10}\,ms including actuator mechanical response; Fig.~\ref{fig:reflex}b). The CPU baseline, in which the host receives the depth map via Ethernet and issues a retraction command, yields \reflexCPU\,$\pm$\,\placeholder{${\sim}8$}\,ms ($p < \placeholder{10^{-10}}$, Mann--Whitney $U$ test), dominated by network and scheduling variability.
+
+The on-chip detection latency of \placeholder{${\sim}0.211$}\,ms places the hardware reflex within the temporal range of the fastest human spinal reflexes (\placeholder{${\sim}1{-}5$}\,ms)~\cite{johansson1984tactile}. The biological circuit provides adaptive gain modulation and multi-joint coordination that the fixed-threshold comparator does not; conversely, the hardware pathway achieves sub-millisecond consistency with near-zero jitter, a property that biological motor systems cannot guarantee due to synaptic variability. This complementarity suggests a layered control architecture in which deterministic hardware reflexes provide a first line of defence while higher-level software controllers handle deliberative responses.
+
+\subsubsection*{Depth-driven slip detection}
+
+Slip detection is a prerequisite for stable grasping, yet most visuotactile implementations rely on learned classifiers applied to raw images, requiring per-object training and inheriting software latency~\cite{dong2017improved}. The continuous depth stream from the near-sensor pipeline enables a physics-based alternative that requires no training and operates at the full frame rate.
+
+The principle is frame-to-frame depth differencing (Fig.~\ref{fig:slip}a). When an object translates laterally across the elastomer, the contact region shifts: the leading edge deepens while the trailing edge shallows. The difference map $\Delta D(x,y) = D_t(x,y) - D_{t-1}(x,y)$ therefore exhibits a characteristic bipolar pattern---positive on one side, negative on the other---whose orientation encodes the slip direction. We define a scalar slip metric as the sum of absolute depth changes across the contact region:
+\begin{equation}
+  M(t) = \sum_{(x,y) \in \mathcal{C}} |\Delta D(x,y)|,
+\end{equation}
+where $\mathcal{C}$ is the set of pixels exceeding a contact depth threshold. The slip direction is estimated from the displacement of the positive and negative centroids of $\Delta D$.
+
+On-chip, this computation requires only a single-frame depth buffer and a pixel-wise subtractor, adding \placeholder{one} clock cycle of latency to the reconstruction output. Figure~\ref{fig:slip}b shows depth-difference maps during a lateral displacement at \placeholder{${\sim}5$}\,mm\,s$^{-1}$: the bipolar pattern is clearly resolved. The metric $M(t)$ rises above the noise floor within \placeholder{one frame period} of slip onset (Fig.~\ref{fig:slip}c), providing detection at the camera frame rate (\placeholder{${\sim}200$}\,fps) without additional sensing hardware. Because the signal derives from the physical depth field rather than from learned image features, it generalises across object geometries without retraining.
+
+\subsubsection*{Generalisation beyond tactile sensing}
+
+The spectral Poisson solver at the core of this architecture is not specific to visuotactile sensing: it reconstructs any scalar field from its measured gradient, a mathematical operation shared by several sensing modalities. To demonstrate this generality, we applied the on-chip pipeline to gradient fields from two non-tactile sources (Fig.~\ref{fig:general}a,b).
+
+First, we processed synthetic surface-normal maps rendered from known 3D meshes, simulating the output of a structured-light depth camera or a shape-from-shading system. The pipeline recovers the depth map with an RMSE of \placeholder{$< 10^{-3}$} relative to the ground-truth mesh, confirming that the solver handles gradient fields with richer spatial structure than typical tactile contacts (Fig.~\ref{fig:general}a).
+
+Second, we applied the pipeline to \placeholder{experimentally captured / publicly available} Shack--Hartmann wavefront sensor data, in which a lenslet array measures local wavefront tilts that are mathematically equivalent to surface gradients. The reconstructed wavefront agrees with the reference within \placeholder{$\lambda/XX$} (Fig.~\ref{fig:general}b), demonstrating that the fixed-point arithmetic and $128 \times 128$ resolution are sufficient for optical metrology applications.
+
+These results establish the streaming spectral Poisson solver as a general-purpose near-sensor computation primitive applicable wherever gradient-to-scalar integration is required at low latency and low power.
+% ---- Fig. 4 (v2.0: 6-panel) ----
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{figure/fig4_reflex_slip.png}
+% \fbox{\parbox{0.95\textwidth}{\centering\vspace{5cm}
+% \textbf{Fig.~4 placeholder}\\[4pt]
+% \textbf{a,} Three reflex pathways \quad
+% \textbf{b,} High-speed camera frames \quad
+% \textbf{c,} Reflex latency comparison\\[4pt]
+% \textbf{d,} Slip detection principle \quad
+% \textbf{e,} Depth-difference sequence \quad
+% \textbf{f,} Slip metric time series
+% \vspace{5cm}}}
+\caption{\textbf{Sub-millisecond tactile reflex and real-time slip detection.}
+\textbf{a,} Latency comparison of three tactile response pathways: biological spinal reflex (top; temporal reference only---the biological circuit is functionally more complex), FPGA near-sensor pathway (middle, \placeholder{${\sim}$\reflexFPGA}\,ms detection $+$ \placeholder{${\sim}3$}\,ms actuation), and conventional CPU loop (bottom, \placeholder{${\sim}$\reflexCPU}\,ms detection $+$ \placeholder{${\sim}3$}\,ms actuation).
+\textbf{b,} High-speed video frames (300\,fps) of the FPGA reflex pathway; the finger begins retracting within \placeholder{2--3} frames of contact onset.
+\textbf{c,} Reflex detection latency over \placeholder{50} trials. The FPGA pathway (blue) clusters at \placeholder{${\sim}0.211$}\,ms; the CPU loop (magenta) spans \placeholder{20--50}\,ms.
+\textbf{d,} Slip detection principle: frame-to-frame depth differencing reveals contact-region displacement.
+\textbf{e,} Depth-difference maps during a lateral slip event at \placeholder{${\sim}5$}\,mm\,s$^{-1}$; the bipolar red--blue pattern indicates slip direction.
+\textbf{f,} Integrated motion metric over time; slip onset is detected within \placeholder{one frame period}.}
+\label{fig:general}
+\end{figure}
+
+
+\section*{Discussion} 
+
+% ---- P1: 范式意义 + 深度图作为物理中间表征 ----
+The central insight of this work is that the spectral structure of the Poisson equation---specifically, its diagonalisation by the discrete sine transform under Dirichlet boundary conditions---maps naturally onto a streaming hardware pipeline with fixed, data-independent latency, whereas the iterative solvers used in all prior visuotactile software do not. This architectural match is what makes PDE-level near-sensor computing practical: it converts a convergence-dependent numerical procedure into a deterministic sequence of transform, divide, and inverse-transform stages that can be fully pipelined. Prior near-sensor and in-sensor tactile implementations have been confined to low-level operations: noise filtering on capacitive arrays~\cite{chen2025capacitive}, edge enhancement in piezoelectric skins~\cite{cho2025npjflex}, or learned classification in resistive matrices~\cite{zhou2020nearsensor}. Solving the Poisson equation on-chip elevates the sensor's output from raw pixel data to a calibrated physical quantity---depth in millimetres---that is directly interpretable by downstream controllers without per-sensor retraining. This depth map is inherently sensor-agnostic: force estimation models transfer across visuotactile sensors when depth, not raw RGB, serves as the shared representation~\cite{chen2026genforce}, and tactile SLAM systems achieve higher accuracy with depth-derived features than with appearance-based ones~\cite{zhao2026gelslam}.
+
+An alternative design would implement an iterative solver---such as multigrid or conjugate gradients---on the same FPGA. For the $128 \times 128$ problem size, a V-cycle multigrid solver converges in approximately \placeholder{5--10} iterations in software, and each iteration is arithmetically lighter than a full spectral transform. However, iterative methods require multiple read--modify--write passes over the solution array, introducing data-dependent convergence and frame-buffered feedback that preclude a single-pass streaming architecture. On an FPGA, this translates to either (a)~storing the full solution in on-chip memory and iterating in place, which demands the same URAM budget as our transposition buffers but adds a variable iteration loop, or (b)~streaming through an unrolled fixed number of iterations at the cost of replicating the stencil hardware per iteration. Neither option provides the fixed, input-independent cycle count that is the central design requirement for deterministic near-sensor operation. A quantitative FPGA-level comparison between spectral and iterative architectures at multiple resolutions would be a valuable future study.
+
+% ---- P2: 与事件相机互补 ----
+The relationship between the architecture presented here and event-based tactile sensors~\cite{funk2024evetac,jiang2026spikingtac} is complementary, not competitive. Event cameras excel at detecting rapid changes in contact state---slip onset, vibration, texture edges---at kilohertz rates and microwatt-level power, but their asynchronous brightness-change events encode temporal contrast, not surface geometry. Our pipeline provides the spatial counterpart: dense three-dimensional depth at comparable temporal bandwidth. A future sensor combining an event-driven front-end for fast contact-change detection with a frame-driven spectral solver for on-demand depth reconstruction could unite the strengths of both modalities. Such a hybrid would pair sub-microsecond event detection with microsecond-scale geometric reasoning on a single substrate.
+
+% ---- P3: 局限性 + 解决路径 ----
+Several limitations should be acknowledged. The $128 \times 128$ resolution used throughout this work matches the operating resolution of current visuotactile~\cite{yuan2017gelsight,lambeta2020digit} and event-based tactile sensors~\cite{jiang2026spikingtac}, and is sufficient to resolve contact features at the spatial scale relevant to manipulation~\cite{yuan2017gelsight}. The architecture has been verified at $256 \times 256$ on the same device (Extended Data Table~\ref{tab:ed_scaling}), confirming that the pipeline scales within a single FPGA generation. Extending to $512 \times 512$ or beyond would exhaust the on-chip UltraRAM on the current device; migration to a larger FPGA (e.g., Zynq UltraScale+ XCZU15EG with 240 URAM blocks) or to a custom ASIC with dedicated SRAM would accommodate such resolutions without architectural modification, as the datapath is fully parametric. More fundamentally, the Poisson solver assumes homogeneous Dirichlet boundary conditions ($z = 0$ at the image edge), which constrains the sensor to contacts that do not extend to the field-of-view boundary. Large-area contacts that violate this assumption suffer depth underestimation near the edges (see Results and Fig.~\ref{fig:accuracy}b). Relaxing this constraint would require Neumann or mixed boundary conditions, for which the spectral solver would employ the discrete cosine transform (DCT) instead of the DST---an architecturally straightforward substitution on the same hardware, since the DCT admits an identical FFT-based construction~\cite{makhoul1980fct}. Alternatively, iterative boundary refinement could correct the boundary artefact as a post-processing step at the cost of additional latency. The per-sensor lookup-table calibration demands a one-time photometric procedure under controlled illumination; automated calibration rigs~\cite{yuan2017gelsight} or self-supervised methods could remove this manual step. The Ethernet output path through the ARM subsystem introduces \placeholder{1--2}\,ms of transport latency, although the GPIO reflex pathway demonstrated here bypasses this bottleneck entirely for safety-critical responses. The PDMS elastomer is subject to wear---a limitation shared by all gel-based visuotactile sensors~\cite{lambeta2020digit,taylor2022gelslim3}---mitigated by replaceable membrane designs. Closed-loop grasping experiments with fragile objects would further validate the practical benefit of sub-millisecond reflexes; this demonstration is a natural next step.
+
+% ---- P4: ASIC化 + beyond tactile + Conclusions ----
+Translation of the validated FPGA datapath to a custom ASIC would reduce the power envelope from ${\sim}$\pwrFPGA\,W to the milliwatt range and shrink the board area to fit inside a robotic fingertip. Wafer-scale production would further bring the marginal per-unit cost to a level compatible with disposable sensor modules. Beyond tactile sensing, the streaming spectral Poisson solver generalises to any modality that recovers a scalar field from measured gradients: Shack--Hartmann wavefront sensors, structured-light depth cameras, and acoustic holography all share the same mathematical kernel. This work shows that PDE-level computation can be embedded at the sensor within a sub-millisecond, deterministic latency budget. Near-sensor computing is thus a practical paradigm for transforming raw sensory data into physics-grounded representations at the point of acquisition.
+
+
+\section*{Methods}
+
+\subsection*{Sensor and hardware platform}
+
+The visuotactile sensor comprises a PDMS elastomer membrane (Dow Sylgard 184, 10:1 ratio, cured at \placeholder{65}\,$^\circ$C for \placeholder{4}\,h, thickness $\sim$\placeholder{3}\,mm) coated with a reflective aluminium-powder layer and illuminated by red, green and blue LED strips arranged on three sides of a square housing. A CMOS image sensor (OmniVision OV5645) captures the deformed membrane at $128 \times 128$ pixels through a short-focal-length lens. The sensor head connects to a Xilinx Zynq UltraScale+ XCZU7EV system-on-chip via a flat-flex cable carrying two-lane MIPI CSI-2 and LED power lines, forming a self-contained unit powered by a single \placeholder{12}\,V DC supply.
+
+All depth reconstruction is performed within the FPGA programmable logic (PL), clocked at \clockMHz\,MHz. The on-chip ARM Cortex-A53 subsystem runs a bare-metal lwIP Ethernet stack for transferring completed depth frames to a logging PC but is excluded from the reconstruction datapath. The bitstream was synthesised with Vivado \placeholder{2023.1}; post-implementation timing closure was achieved with zero negative slack.
+
+\subsection*{Hardware pipeline design}
+
+The depth reconstruction solves the Poisson equation $\nabla^2 z = \nabla \cdot \mathbf{g}$ via a spectral method that diagonalises the discrete Laplacian under Dirichlet boundary conditions~\cite{strang2007cse}. We chose this solver over the iterative multigrid approach used in most software implementations~\cite{yuan2017gelsight} specifically for its hardware properties: the entire computation decomposes into a fixed sequence of streaming operations---lookup, finite difference, forward transform, point-wise division, inverse transform---with no data-dependent branching and no convergence iteration. This guarantees that every frame traverses the pipeline in exactly \totalCyc{} clock cycles (\placeholder{0.211}\,ms), independent of contact geometry.
+
+The datapath is organised as a fully pipelined, single-pass architecture. Pixels enter in raster-scan order at the camera pixel rate and are processed in-flight; no frame buffer is required before the transform stages. The gradient lookup and divergence modules operate combinationally in lockstep with the pixel stream. Each one-dimensional DST is implemented through a pipelined radix-2 FFT core with input rearrangement and phase correction~\cite{makhoul1980fct}, enabling a single core design to serve both forward and inverse passes. The two-dimensional transform is computed separably (rows then columns), connected by a full-frame matrix transposition implemented as a ping-pong double buffer in UltraRAM: one buffer receives the current frame in row-major order while the previous frame is read out in column-major order, and the two swap at each frame boundary. A second identical transposition restores row-major output order. These two transposition stages dominate the on-chip memory footprint.
+
+All arithmetic uses 24-bit signed fixed-point representation. The word length was determined by sweeping 16, 24 and 32 bits through a bit-accurate simulation of the full pipeline and comparing the output against a double-precision floating-point reference. 24 bits was identified as the saturation point beyond which additional precision yields no measurable improvement; the detailed bit allocation per stage is provided in Supplementary Note~1. Hardware resource utilisation and per-stage latency breakdown are listed in Extended Data Tables~\ref{tab:ed_resource} and \ref{tab:ed_latency}.
+
+Two additional hardware modules extend the pipeline. A threshold comparator within the PL evaluates each output depth value against a programmable register ($z_\mathrm{thr} = \placeholder{0.1}$\,mm) and asserts a GPIO line within one clock cycle of detecting contact, completing a tactile reflex loop entirely on-chip. A frame buffer and subtractor appended to the pipeline output compute the inter-frame depth difference $\Delta D(t) = D(t) - D(t{-}1)$, providing a direction-resolved slip signal at negligible additional latency.
+
+\subsection*{Characterisation and baselines}
+
+Four software implementations of the identical reconstruction algorithm were benchmarked: Python (float64, SciPy DST), C++ (FFTW, compiled with \texttt{-O3 -march=native}), CUDA with cuFFT (including host--device transfers), and CUDA with cuFFTDx (device-side transforms only, eliminating transfer overhead). The first three were executed on an Intel \placeholder{Core i7-12700} CPU and an NVIDIA \placeholder{RTX 3060} GPU (desktop workstation); all four were additionally executed on an NVIDIA Jetson Orin Nano (\placeholder{15}\,W module), representing the embedded GPU platform most commonly deployed on robotic manipulators~\cite{mittal2019jetsonsurvey}. Each baseline processed pre-recorded $128 \times 128$ RGB frames; version numbers and compilation flags are listed in Supplementary Table~\placeholder{X}.
+
+FPGA per-frame latency was measured using the on-chip Integrated Logic Analyser (ILA) over \placeholder{1{,}000} consecutive frames. Software latencies were recorded with platform-native high-resolution timers (\texttt{std::chrono} for C++, \texttt{cudaEvent} for CUDA) under otherwise idle system load.
+
+Reconstruction accuracy was evaluated by pressing \placeholder{hemispherical, cylindrical and prismatic} stainless-steel indenters into the sensor at controlled depths (\placeholder{0.3, 0.5 and 0.8}\,mm) using a Franka Emika Panda arm. For each indentation the raw RGB frame and the hardware depth map were simultaneously transmitted to the host for offline comparison against the software reconstruction and the analytical ground-truth profile of the known indenter geometry.
+
+Reflex detection latency was measured using a digital oscilloscope (\placeholder{Tektronix MSO64}). A conductive copper-foil patch on the elastomer surface provided the contact-onset trigger (channel~1); the FPGA GPIO output was monitored on channel~2. The detection latency was defined as the interval between the two edges. A high-speed camera (\placeholder{300}\,fps) simultaneously recorded the mechanical response of the robotic finger. The protocol was repeated \placeholder{50} times for both the FPGA and CPU pathways.
+
+Board-level power was estimated using the Vivado Power Estimator with post-implementation switching-activity data\todo{replace with DC power-meter measurement if available}. CPU and GPU power values are the rated thermal design power of the respective platforms.
+
+
+\section*{Data availability}
+
+
+\section*{Code availability}
+
+
+\section*{Acknowledgements}
+
+
+\section*{Author contributions}
+
+
+\section*{Competing interests}
+
+
+\bibliographystyle{naturemag}
+\bibliography{ref/reference}
+
+
+\clearpage
+
+\section*{Extended Data}
+
+\zhcue{%
+Extended Data 最多 10 个 display items，peer-reviewed。
+以下按优先级排列。}
+
+% ---- ED1: FPGA 资源利用率 ----
+\begin{table}[h]
+\caption{FPGA resource utilisation on Zynq UltraScale+ XCZU7EV.}
+\label{tab:ed_resource}
+\centering
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+Resource & Used & Available & Utilisation \\
+\midrule
+LUT       & \placeholder{XX,XXX} & 230,400 & \placeholder{XX\%} \\
+FF        & \placeholder{XX,XXX} & 460,800 & \placeholder{XX\%} \\
+BRAM (36k)& \placeholder{XX}     & 312     & \placeholder{XX\%} \\
+URAM      & \placeholder{XX}     & 96      & \placeholder{XX\%} \\
+DSP48E2   & \placeholder{XX}     & 1,728   & \placeholder{XX\%} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% ---- ED2: 延迟 breakdown 详表 ----
+\begin{table}[h]
+\caption{Detailed pipeline latency breakdown at \clockMHz\,MHz.}
+\label{tab:ed_latency}
+\centering
+\begin{tabular}{@{}lcc@{}}
+\toprule
+Stage & Clock cycles & Latency ($\mu$s) \\
+\midrule
+LUT gradient estimation    & \placeholder{$\sim$16,400} & \placeholder{98.8} \\
+Divergence computation     & \placeholder{$\sim$200}    & \placeholder{1.2} \\
+Row DST (FFT-based)        & \placeholder{$\sim$4,000}  & \placeholder{24.1} \\
+Row-to-column transposition& \placeholder{$\sim$1,000}  & \placeholder{6.0} \\
+Column DST + spectral div  & \placeholder{$\sim$4,200}  & \placeholder{25.3} \\
+Column IDST                & \placeholder{$\sim$3,740}  & \placeholder{22.5} \\
+Col-to-row transposition   & \placeholder{$\sim$1,000}  & \placeholder{6.0} \\
+Row IDST                   & \placeholder{$\sim$3,740}  & \placeholder{22.5} \\
+\midrule
+\textbf{Total}             & \placeholder{$\sim$35,107} & \placeholder{$\sim$200} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[h]
+\caption{Pipeline scaling with image resolution on Zynq UltraScale+ XCZU7EV (\clockMHz\,MHz). Latency scales as $O(N^2)$; on-chip memory (URAM) scales as $O(N^2)$ due to transposition buffers; DSP utilisation is approximately constant.}
+\label{tab:ed_scaling}
+\centering
+\begin{tabular}{@{}lccccccc@{}}
+\toprule
+Resolution & Total cycles & Latency (ms) & URAM & BRAM & DSP & LUT & Power (W) \\
+\midrule
+$64 \times 64$   & \placeholder{$\sim$8{,}500}   & \placeholder{$\sim$0.051} & \placeholder{6}  & \placeholder{XX} & \placeholder{XX} & \placeholder{XX{,}XXX} & \placeholder{$\sim$4.5} \\
+$128 \times 128$  & \placeholder{$\sim$35{,}107}  & \placeholder{$\sim$0.211} & \placeholder{22} & \placeholder{XX} & \placeholder{XX} & \placeholder{XX{,}XXX} & \placeholder{$\sim$5}   \\
+$256 \times 256$  & \placeholder{$\sim$131{,}000} & \placeholder{$\sim$0.8}   & \placeholder{88} & \placeholder{XX} & \placeholder{XX} & \placeholder{XX{,}XXX} & \placeholder{$\sim$6}   \\
+\midrule
+Available on XCZU7EV & --- & --- & 96 & 312 & 1{,}728 & 230{,}400 & --- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+
+\clearpage
+
+
+\section*{Supplementary Information}
+
+\setcounter{equation}{0}
+\renewcommand{\theequation}{S\arabic{equation}}
+\setcounter{figure}{0}
+\renewcommand{\thefigure}{S\arabic{figure}}
+\setcounter{table}{0}
+\renewcommand{\thetable}{S\arabic{table}}
+
+
+% ================================================================
+%   S1: Spectral diagonalisation of the Poisson equation
+% ================================================================
+\subsection*{S1.\quad Spectral diagonalisation of the discrete Poisson equation}
+
+This section derives the spectral solver used in the depth reconstruction pipeline. The treatment follows Strang~\cite{strang2007cse}, Chapter~7; we reproduce the key steps here for completeness.
+
+\paragraph{Problem statement.}
+The depth map $z$ is obtained by solving the two-dimensional Poisson equation on an $N \times N$ grid under homogeneous Dirichlet boundary conditions:
+\begin{equation}
+  \nabla^2_d \, z_{i,j} = f_{i,j}, \qquad i,j = 1,\ldots,N, \qquad z = 0 \;\text{on the boundary},
+  \label{eq:s_poisson}
+\end{equation}
+where $f_{i,j} = (\nabla \cdot \mathbf{g})_{i,j}$ is the divergence of the surface-gradient field computed from the photometric lookup table, and $\nabla^2_d$ denotes the standard five-point discrete Laplacian:
+\begin{equation}
+  \nabla^2_d \, z_{i,j} = z_{i-1,j} + z_{i+1,j} + z_{i,j-1} + z_{i,j+1} - 4\,z_{i,j}.
+  \label{eq:s_laplacian}
+\end{equation}
+
+\paragraph{1D eigenvalue problem.}
+We first consider the one-dimensional case. The $N \times N$ tridiagonal matrix
+\begin{equation}
+  T_N =
+  \begin{pmatrix}
+    -2 &  1 &        &    \\
+     1 & -2 & \ddots &    \\
+       & \ddots & \ddots & 1 \\
+       &        &  1     & -2
+  \end{pmatrix}
+  \label{eq:s_tridiag}
+\end{equation}
+arises from the 1D Laplacian with Dirichlet boundary conditions ($z_0 = z_{N+1} = 0$). Its eigenvalues and eigenvectors are well known~\cite{strang2007cse}:
+\begin{align}
+  \lambda_k &= -2 + 2\cos\frac{k\pi}{N+1} = 2\left(\cos\frac{k\pi}{N+1} - 1\right), \qquad k = 1,\ldots,N,
+  \label{eq:s_eigenval}\\[4pt]
+  [\mathbf{s}_k]_j &= \sin\frac{jk\pi}{N+1}, \qquad j = 1,\ldots,N.
+  \label{eq:s_eigenvec}
+\end{align}
+The eigenvectors $\{\mathbf{s}_k\}$ are orthogonal and form the basis of the discrete sine transform (DST). Concretely, the matrix $S$ with entries $S_{jk} = \sin(jk\pi/(N{+}1))$ diagonalises $T_N$:
+\begin{equation}
+  T_N = S \,\Lambda\, S^{-1}, \qquad \Lambda = \mathrm{diag}(\lambda_1,\ldots,\lambda_N), \qquad S^{-1} = \tfrac{2}{N+1}\,S^\top.
+  \label{eq:s_diag}
+\end{equation}
+
+\paragraph{Extension to 2D.}
+The 2D discrete Laplacian in Eq.~\eqref{eq:s_laplacian} can be written as a Kronecker sum:
+\begin{equation}
+  L = T_N \otimes I_N + I_N \otimes T_N,
+  \label{eq:s_kronecker}
+\end{equation}
+where $I_N$ is the $N \times N$ identity and $\otimes$ denotes the Kronecker product. Because $T_N$ and $I_N$ commute in the Kronecker sense, both terms share the same eigenvectors, and $L$ is diagonalised by the 2D sine transform $S \otimes S$:
+\begin{equation}
+  L = (S \otimes S)\,(\Lambda \otimes I + I \otimes \Lambda)\,(S \otimes S)^{-1}.
+  \label{eq:s_2d_diag}
+\end{equation}
+The eigenvalues of $L$ are therefore $\lambda_k + \lambda_l$ for $k,l = 1,\ldots,N$.
+
+\paragraph{Spectral solve.}
+Applying the 2D DST to both sides of Eq.~\eqref{eq:s_poisson} decouples the system into $N^2$ independent scalar equations:
+\begin{equation}
+  \hat{z}_{kl} = \frac{\hat{f}_{kl}}{\lambda_k + \lambda_l}, \qquad k,l = 1,\ldots,N,
+  \label{eq:s_spectral_solve}
+\end{equation}
+where $\hat{z}$ and $\hat{f}$ are the 2D DST coefficients of $z$ and $f$. The depth map is recovered by the inverse 2D DST. Because the 2D DST is separable, it is computed as two successive 1D passes (row-wise, then column-wise), each of complexity $O(N \log N)$ per row (or column) when implemented via the FFT (see Supplementary Section~S2).
+
+\paragraph{Why DST and not FFT or DCT.}
+The Dirichlet boundary condition ($z = 0$) mandates sine-type basis functions that vanish at the boundaries. A standard (complex) DFT or a cosine transform would impose periodic or Neumann conditions, respectively, neither of which matches the physical assumption that the depth is zero at the edge of the sensor image~\cite{strang2007cse}.
+
+\paragraph{Note on DST type.}
+The derivation above assumes a node-centred grid with boundary nodes $z_0 = z_{N+1} = 0$, yielding the DST-I basis functions $\sin(jk\pi/(N{+}1))$ and eigenvalues $\lambda_k = 2(\cos(k\pi/(N{+}1)) - 1)$ (Eq.~\eqref{eq:s_eigenval}). Our implementation instead uses the DST-II as defined in SciPy (\texttt{scipy.fft.dstn}, \texttt{type=2}), which corresponds to a half-pixel-shifted (cell-centred) grid where the boundary condition is imposed at half-grid-spacings beyond the first and last pixel. On this grid, the discrete Laplacian is diagonalised by the DST-II basis functions $\sin((2j{-}1)k\pi/(2N))$, with eigenvalues
+\begin{equation}
+  \lambda_k^{\mathrm{(II)}} = 2\!\left(\cos\frac{k\pi}{N} - 1\right), \qquad k = 1,\ldots,N.
+  \label{eq:s_eigenval_dstII}
+\end{equation}
+For $k = 1$, $\lambda_1^{\mathrm{(II)}} \approx -\pi^2/N^2$ (matching the continuous eigenvalue in the limit); for $k = N$, $\lambda_N^{\mathrm{(II)}} = -4$. The spectral solve (Eq.~\eqref{eq:s_spectral_solve}) and 2D extension (Eqs.~\eqref{eq:s_kronecker}--\eqref{eq:s_2d_diag}) are algebraically identical under either convention; only the eigenvalue table stored in the hardware ROM differs. All precomputed reciprocals $1/(\lambda_k^{\mathrm{(II)}} + \lambda_l^{\mathrm{(II)}})$ are generated from Eq.~\eqref{eq:s_eigenval_dstII} and verified against the SciPy reference. For a comprehensive treatment of DST types and grid conventions, see Strang~\cite{strang2007cse}, Sections~7.2--7.3.
+
+
+
+% ================================================================
+%   S2: Computing the DST-II via the FFT
+% ================================================================
+\subsection*{S2.\quad Computing the DST-II via the FFT}
+
+A dedicated DST butterfly architecture would require a custom radix structure with limited reuse across forward and inverse passes. Instead, we construct each 1D DST-II of length $N$ from a standard radix-2 FFT, following the approach of Makhoul~\cite{makhoul1980fct} (originally derived for the DCT; the DST analogue is obtained by a sign flip and index reversal).
+
+\paragraph{Construction.}
+Given an $N$-point real input sequence $x[0], x[1], \ldots, x[N{-}1]$, the DST-II coefficients $X_k$ are computed in three steps:
+
+\textit{Step~1: Input reordering.} Form an auxiliary sequence $v[n]$ of length $N$ by interleaving even-indexed and sign-flipped, reversed odd-indexed samples:
+\begin{equation}
+  v[n] =
+  \begin{cases}
+    x[2n],          & n = 0, 1, \ldots, \lfloor N/2 \rfloor - 1, \\[2pt]
+    -x[2(N-1-n)+1], & n = \lfloor N/2 \rfloor, \ldots, N-1.
+  \end{cases}
+  \label{eq:s_reorder}
+\end{equation}
+
+\textit{Step~2: $N$-point FFT and phase correction.} Compute the DFT $V[k] = \mathrm{FFT}\{v[n]\}$, then multiply each bin by a twiddle factor:
+\begin{equation}
+  W[k] = V[k] \cdot 2j \, \exp\!\left(-\frac{j\pi k}{2N}\right), \qquad k = 0, 1, \ldots, N-1,
+  \label{eq:s_phase}
+\end{equation}
+where $j = \sqrt{-1}$.
+
+\textit{Step~3: Output extraction.} The DST-II coefficients are obtained as the imaginary part of $W[k]$ (after appropriate sign and index reversal):
+\begin{equation}
+  X_k = \mathrm{Im}\!\bigl(W[k]\bigr), \qquad k = 0, 1, \ldots, N-1.
+  \label{eq:s_extract}
+\end{equation}
+
+The inverse DST (IDST, Type-III) is computed by the same FFT core with conjugate twiddle factors and a reciprocal normalisation constant. This construction reduces the DST/IDST to a single $N$-point FFT plus $O(N)$ pre- and post-processing, achieving $O(N \log N)$ arithmetic complexity with a single, reusable FFT datapath.
+
+\paragraph{Numerical verification.}
+We verified this construction against SciPy's \texttt{scipy.fft.dstn} (Type-II) for $N = 128$: the maximum element-wise difference between our FFT-based result and the SciPy reference was below $10^{-14}$ in double precision, confirming exact algebraic equivalence up to floating-point rounding.
+
+
+% ================================================================
+%   S3: Detailed FPGA pipeline architecture
+% ================================================================
+\subsection*{S3.\quad Detailed FPGA pipeline architecture}
+
+This section provides a module-by-module description of the hardware datapath at a level sufficient for reimplementation. All modules operate at \clockMHz\,MHz on a Xilinx Zynq UltraScale+ XCZU7EV. The pipeline is shown schematically in Supplementary Fig.~\ref{fig:s_pipeline}.
+
+\paragraph{Gradient estimation via lookup table.}
+The CMOS pixel stream enters the pipeline in raster-scan order (one pixel per clock cycle). Each pixel's calibration-scaled intensity is decomposed into a sign bit and a \placeholder{12}-bit unsigned magnitude; the magnitude addresses a ROM of $2^{12} = 4{,}096$ entries storing precomputed values of $\tan(\arcsin(\cdot))$ in \placeholder{22}-bit fixed-point format. Both gradient components $g_x$ and $g_y$ are read simultaneously from a single true dual-port 36\,Kb block RAM (one port per component); the sign bit is re-applied after the read. The LUT resource cost is independent of image resolution.
+
+\paragraph{Divergence computation.}
+The divergence (Eq.~4 in Methods) is computed by backward finite differences. The horizontal difference $g_x[i,j] - g_x[i,j{-}1]$ requires only a one-pixel delay register. The vertical difference $g_y[i,j] - g_y[i{-}1,j]$ requires buffering one row of $g_y$ values in a BRAM line buffer. In steady state the module produces one divergence value per clock cycle.
+
+\paragraph{FFT-based DST/IDST modules.}
+Each 1D DST-II or IDST is implemented by the three-step construction described in Supplementary Section~S2. The input reordering (Eq.~\eqref{eq:s_reorder}) is performed in a single-row BRAM buffer that accepts samples in natural order and emits them in permuted order. The $N$-point FFT core is a pipelined radix-2 decimation-in-frequency architecture with $\log_2 N = 7$ butterfly stages for $N = 128$. Twiddle factors are stored in distributed ROM. The phase correction (Eq.~\eqref{eq:s_phase}) is fused into a single complex multiplier. Each DST/IDST pass requires \placeholder{$\sim$3{,}700--4{,}200} clock cycles for one 128-sample row, dominated by FFT fill and drain latency. The four passes (row DST, column DST, column IDST, row IDST) together consume \placeholder{XX} DSP48E2 multipliers and \placeholder{XX}$\times$36\,Kb BRAM.
+
+\paragraph{Row--column transposition.}
+A ping-pong dual-buffer scheme in UltraRAM (URAM) performs the matrix transposition between row-wise and column-wise passes. Data is written in row-major order and read in column-major order; the two buffers swap roles at each frame boundary. Each $128 \times 128 \times 24$-bit frame occupies \placeholder{384}\,KB (\placeholder{11} URAM blocks); the double-buffer requires \placeholder{22} URAM blocks per transposition stage. A second identical transposition after the column IDST restores row-major output order.
+
+\paragraph{Spectral-domain division.}
+After each forward DST pass, the spectral coefficients are divided by the the Laplacian eigenvalues $\lambda_k^{\mathrm{(II)}}$ (Eq.~\eqref{eq:s_eigenval_dstII}). Precomputed reciprocals $1/\lambda_k$ are stored in a small ROM (128 entries $\times$ 24\,bits). The division is implemented as a single fixed-point multiplication, consuming one DSP48E2 slice per pipeline lane. The DC coefficient ($\lambda_0 = 0$) is forced to zero.
+
+\paragraph{Latency budget.}
+Extended Data Table~2 provides a cycle-by-cycle breakdown. The gradient and divergence stages operate in lockstep with the incoming pixel stream and contribute no additional delay beyond the streaming time of $N^2 = 16{,}384$ pixel clocks. The dominant additional latency contributors are the four FFT passes ($\sim$\placeholder{15{,}000} cycles) and the two full-frame transpositions ($\sim$\placeholder{2{,}000} cycles of address-generation overhead; the bulk of each transposition overlaps with the next pass via double buffering). The total is \totalCyc{} cycles at \clockMHz\,MHz $=$ \placeholder{0.211}\,ms, identical for every frame regardless of contact geometry.
+
+% Placeholder for pipeline diagram
+\begin{figure}[h]
+\centering
+\fbox{\parbox{0.92\textwidth}{\centering\vspace{3cm}
+\textbf{Supplementary Fig.~1 placeholder}\\[4pt]
+Detailed pipeline block diagram with bit widths, cycle counts and resource annotations for each stage.
+\vspace{3cm}}}
+\caption{Detailed FPGA pipeline architecture. Each block is annotated with the data format (word length, integer/fractional partition), the pipeline latency in clock cycles, and the principal FPGA resources consumed (LUT, BRAM, URAM, DSP48E2). The pipeline is fully streaming: once the first output depth value emerges, subsequent values follow at one per clock cycle.}
+\label{fig:s_pipeline}
+\end{figure}
+
+
+% ================================================================
+%   S4: Fixed-point bit allocation and sensitivity analysis
+% ================================================================
+\subsection*{S4.\quad Fixed-point bit allocation and sensitivity analysis}
+
+\paragraph{Design strategy.}
+All arithmetic uses signed fixed-point representation. The bit allocation was determined in two steps. First, the dynamic range of intermediate signals was profiled by running \placeholder{143} frames of varied contact geometries through a bit-accurate simulation. The integer width at each stage was set to accommodate the observed peak magnitude with one bit of headroom (Supplementary Table~\ref{tab:s_bitalloc}). Second, the total word length was swept across 16, 24 and 32 bits and the end-to-end reconstruction error evaluated against a 64-bit floating-point reference.
+
+\paragraph{Dynamic range by stage.}
+Supplementary Table~\ref{tab:s_bitalloc} summarises the signal range and bit allocation. Stages preceding the spectral division operate with \placeholder{3} integer bits (range $\pm 8$), sufficient for the gradient and divergence fields whose magnitudes are bounded by the physical surface slope. After spectral division, where low-frequency eigenvalues $\lambda_k + \lambda_l \to 0$ amplify the quotient, the required integer width increases to \placeholder{13} bits (range $\pm 8{,}192$). The final depth output uses a \placeholder{17}-bit fractional part, providing a quantisation step of $2^{-17} \approx 7.6 \times 10^{-6}$.
+
+\begin{table}[h]
+\centering
+\caption{Fixed-point bit allocation by pipeline stage.}
+\label{tab:s_bitalloc}
+\begin{tabular}{@{}lccc@{}}
+\toprule
+Stage & Signal range & Integer bits & Format \\
+\midrule
+LUT gradient output & $[-1, 1]$ & \placeholder{3} & sfix24\_En\placeholder{20} \\
+Divergence & $[-2, 2]$ & \placeholder{3} & sfix24\_En\placeholder{20} \\
+FFT butterfly (internal) & varies & \placeholder{7} & sfix24\_En\placeholder{16} \\
+Spectral division output & $[-8192, 8192]$ & \placeholder{13} & sfix24\_En\placeholder{10} \\
+IDST output / final depth & $[0, \sim\!2]$\,mm & \placeholder{6} & sfix24\_En\placeholder{17} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Bit-width sweep.}
+Supplementary Table~\ref{tab:s_sweep} confirms that 24-bit precision saturates the achievable accuracy. The residual error at 24 bits is dominated by the photometric calibration of the sensor, not by the arithmetic pipeline.
+
+\begin{table}[h]
+\centering
+\caption{End-to-end reconstruction error vs.\ word length, evaluated over \placeholder{143} frames against a 64-bit floating-point reference.}
+\label{tab:s_sweep}
+\begin{tabular}{@{}lcc@{}}
+\toprule
+Word length & RMSE & PSNR (dB) \\
+\midrule
+16-bit & \placeholder{$4.18 \times 10^{-3}$} & \placeholder{20.7} \\
+24-bit & $8.8 \times 10^{-4}$ & 30.3 \\
+32-bit & $8.8 \times 10^{-4}$ & 30.3 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Per-stage sensitivity.}
+To identify the stages most sensitive to quantisation, each module was individually reduced to 16-bit precision while all other stages remained at 24 bits. \todo{Fill in after running per-stage simulation.}
+
+\begin{table}[h]
+\centering
+\caption{Per-stage sensitivity to reduced precision. Each row shows the reconstruction error when a single stage operates at 16-bit while all others remain at 24-bit.}
+\label{tab:s_sensitivity}
+\begin{tabular}{@{}lcc@{}}
+\toprule
+Stage reduced to 16-bit & RMSE & $\Delta$PSNR (dB) \\
+\midrule
+LUT gradient estimation & \placeholder{TBD} & \placeholder{TBD} \\
+Divergence computation & \placeholder{TBD} & \placeholder{TBD} \\
+Forward FFT (row + column) & \placeholder{TBD} & \placeholder{TBD} \\
+Spectral division & \placeholder{TBD} & \placeholder{TBD} \\
+Inverse FFT (row + column) & \placeholder{TBD} & \placeholder{TBD} \\
+\midrule
+All stages at 24-bit (baseline) & $8.8 \times 10^{-4}$ & 0 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+% ================================================================
+%   S5: Supplementary Video description
+% ================================================================
+\subsection*{S5.\quad Supplementary Video}
+
+\todo{Supplementary Video 1: High-speed footage (300\,fps) of the FPGA tactile reflex pathway, showing the robotic finger retracting from a sharp indenter within 2--3 frames of contact onset. Side-by-side comparison with the CPU pathway (if available) or annotated timeline overlay.}
+
+
+
+
+\end{document}

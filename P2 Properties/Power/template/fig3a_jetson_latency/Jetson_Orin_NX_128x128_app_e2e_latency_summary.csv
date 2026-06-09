@@ -1,0 +1,2 @@
+platform,width,height,pixels,fps,batch_size,latency_ms,latency_p50_ms,latency_p95_ms,latency_p99_ms,latency_mean_ms,latency_std_ms,latency_min_ms,latency_max_ms,measurement_scope,num_iters,warmup,notes
+Jetson Orin NX,128,128,16384,180,1,3.303000336,3.1842170000000003,3.7660603999999998,5.26553473,3.303000336,0.47105467214384966,3.078023,11.499656,app_e2e,1000,100,Use samples CSV for Fig.3a CDF; use summary CSV for p50/p95/p99 fields.

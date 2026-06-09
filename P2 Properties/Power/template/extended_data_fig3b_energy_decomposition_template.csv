@@ -1,0 +1,5 @@
+platform,phase,duration_ms,time_fraction_percent,avg_dynamic_power_w,dynamic_energy_j,energy_fraction_percent,idle_baseline_w,source_panel_or_file,notes
+Jetson Orin NX,H2D_Transfer,,,,,,,Derived from Extended Data Fig.3a / power_profile_sustained.csv,Can be auto-computed from the existing Jetson trace
+Jetson Orin NX,GPU_Compute,,,,,,,Derived from Extended Data Fig.3a / power_profile_sustained.csv,Can be auto-computed from the existing Jetson trace
+Jetson Orin NX,D2H_Transfer,,,,,,,Derived from Extended Data Fig.3a / power_profile_sustained.csv,Can be auto-computed from the existing Jetson trace
+This work,Full FPGA pipeline,0.21149,100,,,100,,Measured or estimated from FPGA power and fixed latency,Fill true dynamic energy if available; avoid relying on placeholder 0.6 W estimate for final submission

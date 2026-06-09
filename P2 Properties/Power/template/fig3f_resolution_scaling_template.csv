@@ -1,0 +1,21 @@
+platform,device,resolution,label,pixels,latency_ms,latency_p50_ms,latency_p95_ms,latency_p99_ms,latency_limited_fps,target_fps,active_fps,missed_deadline_rate,active_power_w,idle_power_w,incremental_power_w,power_w,energy_per_frame_mj,measure_mode,notes
+This work,ASIC / FPGA estimate,64,64×64,4096,,,,,,,,,,,,,,real-time latency-limited FPS; full-chip/device active power,Scripts fill Jetson/CPU/GPU rows; fill This work from ASIC/FPGA reports.
+This work,ASIC / FPGA estimate,96,96×96,9216,,,,,,,,,,,,,,real-time latency-limited FPS; full-chip/device active power,Scripts fill Jetson/CPU/GPU rows; fill This work from ASIC/FPGA reports.
+This work,ASIC / FPGA estimate,128,128×128,16384,,,,,,,,,,,,,,real-time latency-limited FPS; full-chip/device active power,Scripts fill Jetson/CPU/GPU rows; fill This work from ASIC/FPGA reports.
+This work,ASIC / FPGA estimate,192,192×192,36864,,,,,,,,,,,,,,real-time latency-limited FPS; full-chip/device active power,Scripts fill Jetson/CPU/GPU rows; fill This work from ASIC/FPGA reports.
+This work,ASIC / FPGA estimate,256,256×256,65536,,,,,,,,,,,,,,real-time latency-limited FPS; full-chip/device active power,Scripts fill Jetson/CPU/GPU rows; fill This work from ASIC/FPGA reports.
+Jetson Orin NX,Jetson Orin NX,64,64×64,4096,,,,,,,,,,,,,,real-time latency-limited FPS; full-chip/device active power,Scripts fill Jetson/CPU/GPU rows; fill This work from ASIC/FPGA reports.
+Jetson Orin NX,Jetson Orin NX,96,96×96,9216,,,,,,,,,,,,,,real-time latency-limited FPS; full-chip/device active power,Scripts fill Jetson/CPU/GPU rows; fill This work from ASIC/FPGA reports.
+Jetson Orin NX,Jetson Orin NX,128,128×128,16384,,,,,,,,,,,,,,real-time latency-limited FPS; full-chip/device active power,Scripts fill Jetson/CPU/GPU rows; fill This work from ASIC/FPGA reports.
+Jetson Orin NX,Jetson Orin NX,192,192×192,36864,,,,,,,,,,,,,,real-time latency-limited FPS; full-chip/device active power,Scripts fill Jetson/CPU/GPU rows; fill This work from ASIC/FPGA reports.
+Jetson Orin NX,Jetson Orin NX,256,256×256,65536,,,,,,,,,,,,,,real-time latency-limited FPS; full-chip/device active power,Scripts fill Jetson/CPU/GPU rows; fill This work from ASIC/FPGA reports.
+CPU i7-13700,Intel Core i7-13700,64,64×64,4096,,,,,,,,,,,,,,real-time latency-limited FPS; full-chip/device active power,Scripts fill Jetson/CPU/GPU rows; fill This work from ASIC/FPGA reports.
+CPU i7-13700,Intel Core i7-13700,96,96×96,9216,,,,,,,,,,,,,,real-time latency-limited FPS; full-chip/device active power,Scripts fill Jetson/CPU/GPU rows; fill This work from ASIC/FPGA reports.
+CPU i7-13700,Intel Core i7-13700,128,128×128,16384,,,,,,,,,,,,,,real-time latency-limited FPS; full-chip/device active power,Scripts fill Jetson/CPU/GPU rows; fill This work from ASIC/FPGA reports.
+CPU i7-13700,Intel Core i7-13700,192,192×192,36864,,,,,,,,,,,,,,real-time latency-limited FPS; full-chip/device active power,Scripts fill Jetson/CPU/GPU rows; fill This work from ASIC/FPGA reports.
+CPU i7-13700,Intel Core i7-13700,256,256×256,65536,,,,,,,,,,,,,,real-time latency-limited FPS; full-chip/device active power,Scripts fill Jetson/CPU/GPU rows; fill This work from ASIC/FPGA reports.
+RTX 4090,NVIDIA RTX 4090,64,64×64,4096,,,,,,,,,,,,,,real-time latency-limited FPS; full-chip/device active power,Scripts fill Jetson/CPU/GPU rows; fill This work from ASIC/FPGA reports.
+RTX 4090,NVIDIA RTX 4090,96,96×96,9216,,,,,,,,,,,,,,real-time latency-limited FPS; full-chip/device active power,Scripts fill Jetson/CPU/GPU rows; fill This work from ASIC/FPGA reports.
+RTX 4090,NVIDIA RTX 4090,128,128×128,16384,,,,,,,,,,,,,,real-time latency-limited FPS; full-chip/device active power,Scripts fill Jetson/CPU/GPU rows; fill This work from ASIC/FPGA reports.
+RTX 4090,NVIDIA RTX 4090,192,192×192,36864,,,,,,,,,,,,,,real-time latency-limited FPS; full-chip/device active power,Scripts fill Jetson/CPU/GPU rows; fill This work from ASIC/FPGA reports.
+RTX 4090,NVIDIA RTX 4090,256,256×256,65536,,,,,,,,,,,,,,real-time latency-limited FPS; full-chip/device active power,Scripts fill Jetson/CPU/GPU rows; fill This work from ASIC/FPGA reports.

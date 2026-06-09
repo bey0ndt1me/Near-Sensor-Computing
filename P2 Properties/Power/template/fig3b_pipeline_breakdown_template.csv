@@ -1,0 +1,10 @@
+stage_order,stage,cycles,clock_mhz,latency_ms,stage_group,include_in_total,source,notes
+1,RGB→normal,6,166,3.60612E-05,front-end,TRUE,RTL/static schedule,
+2,Divergence,0,166,0,front-end,TRUE,RTL/static schedule,
+3,Column DST,584,166,0.003509955,spectral transform,TRUE,RTL/static schedule,
+4,Transpose buffer 1,16391,166,0.098513146,memory transpose,TRUE,RTL/static schedule,
+5,Row DST,572,166,0.003437833,spectral transform,TRUE,RTL/static schedule,
+6,Spectral division,7,166,4.20714E-05,spectral solve,TRUE,RTL/static schedule,
+7,Transpose buffer 2,16391,166,0.098513146,memory transpose,TRUE,RTL/static schedule,
+8,Row IDST + output,1156,166,0.006947788,inverse/output,TRUE,RTL/static schedule,
+TOTAL,Total pipeline,35107,166,0.211,summary,TRUE,computed,

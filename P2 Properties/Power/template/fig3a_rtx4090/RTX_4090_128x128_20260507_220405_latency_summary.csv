@@ -1,0 +1,2 @@
+platform,display_name,run_id,width,height,pixels,fps_target,batch_size,backend,device_name,measurement_scope,include_transfers,num_iters,warmup,notes,latency_p50_ms,latency_p95_ms,latency_p99_ms,latency_mean_ms,latency_std_ms,latency_min_ms,latency_max_ms
+RTX 4090,RTX 4090,RTX_4090_128x128_20260507_220405,128,128,16384,180.0,1,cuda,NVIDIA GeForce RTX 4090 D,compute_only,False,1000,100,,0.2781099999538128,0.3066876000389129,0.43158791997257134,0.2899759109984643,0.08049114912755183,0.27386600004319916,1.3509450000128709

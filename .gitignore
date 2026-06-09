@@ -1,0 +1,73 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Figure outputs (large binary — regenerate from scripts)
+*.tiff
+*.tif
+*.svg
+*.png
+*.pdf
+*.jpg
+*.jpeg
+
+# LaTeX
+*.aux
+*.bbl
+*.blg
+*.brf
+*.fdb_latexmk
+*.fls
+*.lof
+*.log
+*.lot
+*.out
+*.synctex.gz
+*.toc
+*.bcf
+*.run.xml
+
+# Large binary files (not code — reference only)
+*.pptx
+*.zip
+*.xlsx
+
+# OS
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# IDE
+.vscode/
+.idea/
+
+# Generated figure previews (regenerate from scripts)
+P1 Overview/Fig1_*.png
+P1 Overview/Fig1_*.pdf
+P1 Overview/Fig1_*.tiff
+P1 Overview/Fig1_*.svg
+
+# Reference/draft images (not needed for code versioning)
+P1 Overview/a ASIC概念/
+P1 Overview/c 优势雷达图/
+P1 Overview/d 重建效果图/
+P1 Overview/Previous/
+P1 Overview/__pycache__/
+P1 Overview/GPT1.jpg
+P1 Overview/GPT1_2.png
+P4 Embodied Task/*.pptx
+P4 Embodied Task/*.jpg
+P4 Embodied Task/*.png
+P5 Future/*.pptx
+P5 Future/*.jpg
+P5 Future/*.png
+
+# Keep materials needed for figure generation
+!P1 Overview/materials/

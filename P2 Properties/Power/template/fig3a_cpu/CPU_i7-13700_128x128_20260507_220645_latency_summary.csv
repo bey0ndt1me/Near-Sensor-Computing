@@ -1,0 +1,2 @@
+platform,display_name,run_id,width,height,pixels,fps_target,batch_size,backend,device_name,measurement_scope,include_transfers,num_iters,warmup,notes,latency_p50_ms,latency_p95_ms,latency_p99_ms,latency_mean_ms,latency_std_ms,latency_min_ms,latency_max_ms
+CPU i7-13700,CPU i7-13700,CPU_i7-13700_128x128_20260507_220645,128,128,16384,180.0,1,cpu,x86_64,compute_only,False,1000,100,,0.43907100007345434,0.5271179498322454,0.9330531501518629,0.4645708319953883,0.08962679854229195,0.4271209995749814,1.60942000002251

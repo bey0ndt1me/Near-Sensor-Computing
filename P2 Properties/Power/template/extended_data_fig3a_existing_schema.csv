@@ -1,0 +1,2 @@
+Time_s,Power_W,Phase,Batch_ID,Sample_ID,measurement_device,notes
+existing,existing,existing: Idle / H2D_Transfer / GPU_Compute / D2H_Transfer,,,,Jetson data already available in power_profile_sustained.csv; no blank template required.

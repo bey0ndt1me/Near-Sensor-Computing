@@ -1,0 +1,28 @@
+platform,point_id,target_fps,processed_fps,full_chip_power_w,full_chip_energy_per_frame_mj,bubble_size_w,meets_180_fps,energy_basis,notes
+This work,ASIC 180 FPS,180,180,0.305,1.6944444444444444,0.305,Yes,full-chip,DC/CACTI estimate at 128x128@180 FPS
+This work,ASIC 400 FPS,400,400,,,,Yes,full-chip,Fill with full-chip power at 128x128@400 FPS; energy is auto-computed if power is filled
+This work,ASIC max input,10131,10131,0.322,0.031783634389497585,0.322,Yes,full-chip,Theoretical maximum input rate from Design Compiler/CACTI report
+Jetson Orin NX,Jetson Orin NX 30 FPS,30,,,,,,full-chip,Fill from staged measurement: full_chip_power_w = active total/device power; energy auto-computed if left blank in plotting script.
+Jetson Orin NX,Jetson Orin NX 45 FPS,45,,,,,,full-chip,Fill from staged measurement: full_chip_power_w = active total/device power; energy auto-computed if left blank in plotting script.
+Jetson Orin NX,Jetson Orin NX 60 FPS,60,,,,,,full-chip,Fill from staged measurement: full_chip_power_w = active total/device power; energy auto-computed if left blank in plotting script.
+Jetson Orin NX,Jetson Orin NX 90 FPS,90,,,,,,full-chip,Fill from staged measurement: full_chip_power_w = active total/device power; energy auto-computed if left blank in plotting script.
+Jetson Orin NX,Jetson Orin NX 120 FPS,120,,,,,,full-chip,Fill from staged measurement: full_chip_power_w = active total/device power; energy auto-computed if left blank in plotting script.
+Jetson Orin NX,Jetson Orin NX 180 FPS,180,,,,,,full-chip,Fill from staged measurement: full_chip_power_w = active total/device power; energy auto-computed if left blank in plotting script.
+CPU i7-13700,CPU i7-13700 30 FPS,30,,,,,,full-chip,Fill from staged measurement: full_chip_power_w = active total/device power; energy auto-computed if left blank in plotting script.
+CPU i7-13700,CPU i7-13700 45 FPS,45,,,,,,full-chip,Fill from staged measurement: full_chip_power_w = active total/device power; energy auto-computed if left blank in plotting script.
+CPU i7-13700,CPU i7-13700 60 FPS,60,,,,,,full-chip,Fill from staged measurement: full_chip_power_w = active total/device power; energy auto-computed if left blank in plotting script.
+CPU i7-13700,CPU i7-13700 90 FPS,90,,,,,,full-chip,Fill from staged measurement: full_chip_power_w = active total/device power; energy auto-computed if left blank in plotting script.
+CPU i7-13700,CPU i7-13700 120 FPS,120,,,,,,full-chip,Fill from staged measurement: full_chip_power_w = active total/device power; energy auto-computed if left blank in plotting script.
+CPU i7-13700,CPU i7-13700 180 FPS,180,,,,,,full-chip,Fill from staged measurement: full_chip_power_w = active total/device power; energy auto-computed if left blank in plotting script.
+CPU i7-13700,CPU i7-13700 240 FPS,240,,,,,,full-chip,Fill from staged measurement: full_chip_power_w = active total/device power; energy auto-computed if left blank in plotting script.
+CPU i7-13700,CPU i7-13700 320 FPS,320,,,,,,full-chip,Fill from staged measurement: full_chip_power_w = active total/device power; energy auto-computed if left blank in plotting script.
+CPU i7-13700,CPU i7-13700 400 FPS,400,,,,,,full-chip,Fill from staged measurement: full_chip_power_w = active total/device power; energy auto-computed if left blank in plotting script.
+RTX 4090,RTX 4090 30 FPS,30,,,,,,full-chip,Fill from staged measurement: full_chip_power_w = active total/device power; energy auto-computed if left blank in plotting script.
+RTX 4090,RTX 4090 45 FPS,45,,,,,,full-chip,Fill from staged measurement: full_chip_power_w = active total/device power; energy auto-computed if left blank in plotting script.
+RTX 4090,RTX 4090 60 FPS,60,,,,,,full-chip,Fill from staged measurement: full_chip_power_w = active total/device power; energy auto-computed if left blank in plotting script.
+RTX 4090,RTX 4090 90 FPS,90,,,,,,full-chip,Fill from staged measurement: full_chip_power_w = active total/device power; energy auto-computed if left blank in plotting script.
+RTX 4090,RTX 4090 120 FPS,120,,,,,,full-chip,Fill from staged measurement: full_chip_power_w = active total/device power; energy auto-computed if left blank in plotting script.
+RTX 4090,RTX 4090 180 FPS,180,,,,,,full-chip,Fill from staged measurement: full_chip_power_w = active total/device power; energy auto-computed if left blank in plotting script.
+RTX 4090,RTX 4090 240 FPS,240,,,,,,full-chip,Fill from staged measurement: full_chip_power_w = active total/device power; energy auto-computed if left blank in plotting script.
+RTX 4090,RTX 4090 320 FPS,320,,,,,,full-chip,Fill from staged measurement: full_chip_power_w = active total/device power; energy auto-computed if left blank in plotting script.
+RTX 4090,RTX 4090 400 FPS,400,,,,,,full-chip,Fill from staged measurement: full_chip_power_w = active total/device power; energy auto-computed if left blank in plotting script.

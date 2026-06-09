@@ -1,0 +1,19 @@
+source NPY dir : /media/asus/BAD43D91D43D50BD/Project/experiments_imx_sensor/0_error/ana_py/paper_figures/coin_1
+shape          : (128, 128)
+
+--- error  (= FPGA − cleaned Python, interior) ---
+  n           : 15876
+  RMSE        : 0.000368
+  MAE         : 0.000292
+  max |err|   : 0.001555  at (y=112, x=112)
+  bias        : 0.000000    (≈ 0 by construction)
+  std         : 0.000368
+  Pearson ρ   : 0.967138
+
+--- edge vs flat (|∇py| > median) ---
+  edge: n=7938  RMSE=0.000350
+  flat: n=7938  RMSE=0.000385
+
+--- depth ranges (interior) ---
+  FPGA   : [-0.0028, 0.0045]   mean=0.0002
+  Python : [-0.0029, 0.0039]   mean=0.0002
