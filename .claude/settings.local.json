@@ -20,7 +20,10 @@
       "Bash(GIT_CURL_VERBOSE=1 GIT_TRACE=1 git push -u origin master)",
       "Bash(git rev-list *)",
       "Bash(git cat-file *)",
-      "Bash(git reset *)"
+      "Bash(git reset *)",
+      "Bash(git commit --amend -m 'Initial commit: Near-Sensor Computing — manuscript, plotting scripts, and data *)",
+      "Bash(git reflog *)",
+      "Bash(git gc *)"
     ]
   }
 }

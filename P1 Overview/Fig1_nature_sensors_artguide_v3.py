@@ -74,11 +74,6 @@ PALE_BLUE   = "#EAF3FF"
 PALE_GREEN  = "#EDF7E8"
 PALE_PURPLE = "#F1ECFA"
 PALE_RED    = "#FDEBEB"
-# NMI pastel family — cool baseline + lilac/rose hero
-BASELINE_DARK = "#484878"   # radar: strongest baseline
-BASELINE_MID  = "#7884B4"   # radar: mid baseline
-BASELINE_SOFT = "#B4C0E4"   # radar: soft baseline
-NEUTRAL_LIGHT = "#D8D8D8"   # radar: weakest / reference
 
 # 整张图物理尺寸，单位 inch。180 mm 是 Nature 系列常用双栏宽度。
 # 想让整张图更高或更矮：改 FIG_H；想改变整图宽度：改 FIG_W。
@@ -627,18 +622,21 @@ def draw_panel_c(ax, label="c"):
 
 
 def draw_panel_application(ax):
-    """panel d：机械手/羽毛触碰应用占位图；frames 里的 box 控制上下两张图的位置和大小。"""
+    """panel d：传感器在机械手上的集成应用图；上方为机械手抓取场景，下方为对应的深度输出。"""
     hide_ax(ax)
     panel_label(ax, "d", x=-0.035, y=1.015)
-    # frames 每一项为 (候选图片文件名列表, box=(x,y,w,h), 找不到图片时显示的标题)。
-    # 放入真实图片时，优先使用列表中最前面的文件名。
+    # 待拍摄素材（参考硬件拍摄清单）：
+    #   robot_hand_setup.png      — 传感器安装在机械手指上的特写
+    #   robot_hand_grasp.png      — 机械手抓取柔体物体的动作瞬间
+    #   depth_output_grasp.png    — 对应抓取动作的深度输出图（256x256）
+    # 放入 ./materials/ 后脚本自动读取，未找到时显示占位区。
     frames = [
-        (["feather_touch.png", "dexterous_hand_feather_touch.png",
-          "robot_hand_feather_touch.png"], (0.075, 0.575, 0.850, 0.325),
-         "feather touch"),
-        (["feather_recoil_10ms.png", "dexterous_hand_recoil_10ms.png",
-          "robot_hand_recoil_10ms.png"], (0.075, 0.090, 0.850, 0.325),
-         "10 ms recoil"),
+        (["robot_hand_setup.png", "sensor_on_finger.png",
+          "dexterous_hand_setup.png"], (0.075, 0.570, 0.850, 0.340),
+         "sensor-on-hand setup"),
+        (["robot_hand_grasp.png", "grasp_moment.png",
+          "feather_touch.png"], (0.075, 0.085, 0.850, 0.340),
+         "grasp with depth feedback"),
     ]
     for names, box, fallback in frames:
         img = None
@@ -647,35 +645,37 @@ def draw_panel_application(ax):
             if img is not None:
                 break
         if img is None:
-            image_placeholder(ax, box, fallback, "robot hand + sensor")
+            image_placeholder(ax, box, fallback, "robot hand + sensor photo")
         else:
             draw_image_original_ratio(ax, img, box, zorder=3)
-    ax.add_patch(FancyArrowPatch((0.500, 0.535), (0.500, 0.455),
+    # 上下两图之间的连接箭头
+    ax.add_patch(FancyArrowPatch((0.500, 0.535), (0.500, 0.465),
                                  arrowstyle="-|>", mutation_scale=6,
                                  lw=0.55, color="#56616B",
                                  shrinkA=0, shrinkB=0))
-    ax.text(0.525, 0.495, "10 ms", ha="left", va="center",
-            fontsize=5.0, color=BLUE, fontweight="bold")
-    ax.text(0.500, 0.030, "feather-triggered tactile reflex",
+    ax.text(0.525, 0.500, "0.211 ms\ndepth out", ha="left", va="center",
+            fontsize=4.8, color=BLUE, fontweight="bold", linespacing=1.05)
+    ax.text(0.500, 0.015, "on-chip tactile depth reflex",
             ha="center", va="bottom", fontsize=5.0, color=TEXT)
 
 
 def draw_panel_radar(ax):
-    """panel e：雷达图；统一冷色家族表示对比基线，hero 蓝色突出 This work。"""
+    """panel e：雷达图；高区分度四色：蓝=This work, 青=Jetson, 橙=GPU, 灰=CPU。"""
     labels = ["Low\nlatency", "Power\nefficiency", "Throughput",
               "Size", "Timing\ndeterminism"]
     angles = np.linspace(0, 2*np.pi, len(labels), endpoint=False).tolist()
     loop = angles + angles[:1]
-    # NMI pastel 冷色家族: hero=深蓝, baselines=蓝灰递减
-    # 每一项为 (图例名, 五维分数0-1, 颜色, 线宽)。
-    n_val = 5  # n=5 independent measurement runs
+    # 高辨识度四色: hero 深蓝 + 青/橙/灰，绿色盲友好，灰度打印可区分
+    RADAR_BLUE   = "#0F4D92"   # This work — deep blue hero
+    RADAR_CYAN   = "#008A8A"   # Jetson Orin NX — teal (clearly ≠ blue)
+    RADAR_ORANGE = "#D97C2B"   # GPU — orange (warm, high contrast vs cool)
+    RADAR_GRAY   = "#767676"   # CPU — neutral gray (reference baseline)
     series = [
-        (f"This work (n={n_val})",     [0.97, 0.92, 0.94, 0.96, 0.98], BLUE,          1.15),
-        (f"Jetson Orin NX (n={n_val})", [0.64, 0.52, 0.78, 0.42, 0.50], BASELINE_DARK, 0.78),
-        (f"GPU (n={n_val})",            [0.74, 0.25, 0.95, 0.18, 0.43], BASELINE_MID,  0.78),
-        (f"CPU (n={n_val})",            [0.30, 0.34, 0.36, 0.62, 0.29], NEUTRAL_LIGHT, 0.78),
+        ("This work",       [0.97, 0.92, 0.94, 0.96, 0.98], RADAR_BLUE,   1.15),
+        ("Jetson Orin NX",  [0.64, 0.52, 0.78, 0.42, 0.50], RADAR_CYAN,   0.78),
+        ("GPU",             [0.74, 0.25, 0.95, 0.18, 0.43], RADAR_ORANGE, 0.78),
+        ("CPU",             [0.30, 0.34, 0.36, 0.62, 0.29], RADAR_GRAY,   0.78),
     ]
-    # 使用 panel_label 保持标签风格统一
     panel_label(ax, "e", x=-0.18, y=1.10)
     ax.set_theta_offset(np.pi/2)
     ax.set_theta_direction(-1)
@@ -692,12 +692,9 @@ def draw_panel_radar(ax):
         ax.plot(loop, closed, color=color, lw=lw, label=name, zorder=4)
         if "This work" in name:
             ax.fill(loop, closed, color=color, alpha=0.11, zorder=2)
-    ax.legend(loc="upper center", bbox_to_anchor=(0.50, -0.14), ncol=2,
-              frameon=False, fontsize=4.8, handlelength=1.5,
+    ax.legend(loc="upper center", bbox_to_anchor=(0.50, -0.12), ncol=2,
+              frameon=False, fontsize=5.0, handlelength=1.5,
               columnspacing=0.9, handletextpad=0.35)
-    # 统计说明
-    ax.text(0.50, -0.32, "normalised characteristic score\nMean of n=5 independent runs; shaded = This work",
-            transform=ax.transAxes, ha="center", va="top", fontsize=4.8, color=MUTED)
 
 
 def draw_press_schematic(ax, cx, y, w, h, progress):
