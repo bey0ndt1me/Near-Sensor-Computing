@@ -71,3 +71,4 @@ P5 Future/*.png
 
 # Keep materials needed for figure generation
 !P1 Overview/materials/
+panel_svgs/
